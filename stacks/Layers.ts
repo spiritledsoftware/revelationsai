@@ -17,16 +17,8 @@ export function Layers({ stack, app }: StackContext) {
   app.addDefaultFunctionLayers([sentryLayer]);
   app.addDefaultFunctionEnv({
     SENTRY_DSN: process.env.SENTRY_DSN!,
-    SENTRY_TRACES_SAMPLE_RATE: stack.stage === 'prod' ? '1.0' : '0.0',
+    SENTRY_TRACES_SAMPLE_RATE: stack.stage === 'prod' ? '1.0' : '0.1',
     NODE_OPTIONS: '-r @sentry/serverless/dist/awslambda-auto'
-  });
-
-  app.setDefaultFunctionProps({
-    nodejs: {
-      esbuild: {
-        external: ['@sentry/serverless', 'argon2']
-      }
-    }
   });
 
   return {

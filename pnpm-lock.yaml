@@ -260,6 +260,9 @@ importers:
       '@revelationsai/core':
         specifier: workspace:*
         version: link:../core
+      '@sentry/esbuild-plugin':
+        specifier: ^2.10.2
+        version: 2.10.2
       '@sentry/serverless':
         specifier: ^7.88.0
         version: 7.88.0
@@ -4022,6 +4025,23 @@ packages:
       - supports-color
     dev: false
 
+  /@sentry/bundler-plugin-core@2.10.2:
+    resolution: {integrity: sha512-7IoekLtROlJZqTxtHQ3IhocBuf9dsEq+JjqlHMyZXoq+QKuvJFvMd/4T+r6KjZ15kMZOIkR+spK3V7duH201hw==}
+    engines: {node: '>= 14'}
+    dependencies:
+      '@sentry/cli': 2.23.0
+      '@sentry/node': 7.88.0
+      '@sentry/utils': 7.88.0
+      dotenv: 16.3.1
+      find-up: 5.0.0
+      glob: 9.3.2
+      magic-string: 0.27.0
+      unplugin: 1.0.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: false
+
   /@sentry/cli-darwin@2.23.0:
     resolution: {integrity: sha512-tWuTxvb6P5pA0E+O1/7jKQ6AP45DOOW+BAd7mwBMHZ+5xG3nsvvrRS9hOIzBNPTeB2RyIEXgpQ2Mb6NdD21DBQ==}
     engines: {node: '>=10'}
@@ -4113,6 +4133,18 @@ packages:
     dependencies:
       '@sentry/types': 7.88.0
       '@sentry/utils': 7.88.0
+    dev: false
+
+  /@sentry/esbuild-plugin@2.10.2:
+    resolution: {integrity: sha512-1n+ESSkW093zO2ZJtRpepF2SU/qvSOCHczNPfHsKuTpeSZgaGie9WMR39PXMOACFiUG3F0pK7TDTRUmcosBSAQ==}
+    engines: {node: '>= 14'}
+    dependencies:
+      '@sentry/bundler-plugin-core': 2.10.2
+      unplugin: 1.0.1
+      uuid: 9.0.1
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
     dev: false
 
   /@sentry/integrations@7.88.0:
@@ -6943,7 +6975,6 @@ packages:
   /dotenv@16.3.1:
     resolution: {integrity: sha512-IPzF4w4/Rd94bA9imS68tZBaYyBWSCE47V1RGuMrB94iyTOIEwRmVL2x/4An+6mETpLrKJ5hQkB8W4kFAadeIQ==}
     engines: {node: '>=12'}
-    dev: true
 
   /dreamopt@0.8.0:
     resolution: {integrity: sha512-vyJTp8+mC+G+5dfgsY+r3ckxlz+QMX40VjPQsZc5gxVAxLmi64TBoVkP54A/pRAXMXsbu2GMMBrZPxNv23waMg==}

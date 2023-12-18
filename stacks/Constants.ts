@@ -1,3 +1,4 @@
+import { sentryEsbuildPlugin } from '@sentry/esbuild-plugin';
 import { STATIC_ENV_VARS } from '@stacks';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 import { HostedZone } from 'aws-cdk-lib/aws-route53';
@@ -38,6 +39,15 @@ export function Constants({ stack, app }: StackContext) {
     runtime: 'nodejs20.x',
     nodejs: {
       esbuild: {
+        external: ['@sentry/serverless', 'argon2', '@sparticuz/chromium', 'web-streams-polyfill'],
+        sourcemap: true,
+        plugins: [
+          sentryEsbuildPlugin({
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            org: 'ian-pascoe',
+            project: 'node-awslambda'
+          })
+        ],
         minify: stack.stage === 'prod',
         treeShaking: stack.stage === 'prod'
       }

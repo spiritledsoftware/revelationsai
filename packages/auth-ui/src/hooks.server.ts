@@ -1,13 +1,13 @@
-import {sequence} from '@sveltejs/kit/hooks';
+import { sequence } from '@sveltejs/kit/hooks';
 import * as Sentry from '@sentry/sveltekit';
 import { getUserInfo } from '$lib/services/user';
 import { commonCookies } from '$lib/utils/cookies';
 import type { Handle } from '@sveltejs/kit';
 
 Sentry.init({
-    dsn: "https://4e3a10962cce1eb46a534d5720440f95@o4506418175737856.ingest.sentry.io/4506418505187328",
-    tracesSampleRate: 1
-})
+	dsn: 'https://4e3a10962cce1eb46a534d5720440f95@o4506418175737856.ingest.sentry.io/4506418505187328',
+	tracesSampleRate: 1
+});
 
 export const handle: Handle = sequence(Sentry.sentryHandle(), async ({ resolve, event }) => {
 	try {

@@ -19,11 +19,6 @@ export function Auth({ stack }: StackContext) {
     authenticator: {
       handler: 'packages/functions/src/auth/auth.handler',
       layers: [argonLayer],
-      nodejs: {
-        esbuild: {
-          external: ['argon2']
-        }
-      },
       copyFiles: [
         {
           from: 'emails',
