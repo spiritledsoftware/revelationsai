@@ -18,7 +18,8 @@ export function Website({ stack }: StackContext) {
       PUBLIC_WEBSITE_URL: websiteUrl,
       PUBLIC_API_URL: apiUrl,
       PUBLIC_CHAT_API_URL: chatApiUrl,
-      PUBLIC_AUTH_URL: authUiUrl
+      PUBLIC_AUTH_URL: authUiUrl,
+      PUBLIC_SENTRY_DSN: STATIC_ENV_VARS.SENTRY_DSN
     },
     customDomain: {
       domainName: domainName,

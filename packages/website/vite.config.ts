@@ -7,7 +7,9 @@ export default defineConfig({
 		sentrySvelteKit({
 			sourceMapsUploadOptions: {
 				org: 'revelationsai',
-				project: 'svelte-kit'
+				project: 'svelte-kit',
+				authToken: process.env.SENTRY_AUTH_TOKEN,
+				cleanArtifacts: true
 			}
 		}),
 		sveltekit()

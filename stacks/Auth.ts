@@ -84,11 +84,12 @@ export function Auth({ stack }: StackContext) {
     permissions: [api],
     environment: {
       ...STATIC_ENV_VARS,
+      DATABASE_READWRITE_URL: dbReadWriteUrl,
+      DATABASE_READONLY_URL: dbReadOnlyUrl,
       PUBLIC_WEBSITE_URL: websiteUrl,
       PUBLIC_API_URL: apiUrl,
       PUBLIC_AUTH_URL: authUiUrl,
-      DATABASE_READWRITE_URL: dbReadWriteUrl,
-      DATABASE_READONLY_URL: dbReadOnlyUrl
+      PUBLIC_SENTRY_DSN: STATIC_ENV_VARS.SENTRY_DSN
     },
     customDomain: {
       domainName: `auth.${domainName}`,

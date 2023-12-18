@@ -72,6 +72,7 @@ export const STATIC_ENV_VARS: Record<string, string> = {
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET!,
 
   // Sentry
+  SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN!,
   SENTRY_DSN: process.env.SENTRY_DSN!,
 
   // Upstash

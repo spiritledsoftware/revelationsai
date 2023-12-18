@@ -1,11 +1,12 @@
-import { sequence } from '@sveltejs/kit/hooks';
-import * as Sentry from '@sentry/sveltekit';
+import { PUBLIC_SENTRY_DSN } from '$env/static/public';
 import { getUserInfo } from '$lib/services/user';
 import { commonCookies } from '$lib/utils/cookies';
+import * as Sentry from '@sentry/sveltekit';
 import type { Handle } from '@sveltejs/kit';
+import { sequence } from '@sveltejs/kit/hooks';
 
 Sentry.init({
-	dsn: 'https://4e3a10962cce1eb46a534d5720440f95@o4506418175737856.ingest.sentry.io/4506418505187328',
+	dsn: PUBLIC_SENTRY_DSN,
 	tracesSampleRate: 1
 });
 
