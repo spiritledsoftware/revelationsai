@@ -26,6 +26,9 @@ importers:
       '@neondatabase/serverless':
         specifier: ^0.6.0
         version: 0.6.0
+      '@sentry/esbuild-plugin':
+        specifier: ^2.10.2
+        version: 2.10.2
       drizzle-orm:
         specifier: ^0.29.1
         version: 0.29.1(@aws-sdk/client-rds-data@3.474.0)(@neondatabase/serverless@0.6.0)(@types/pg@8.10.9)(kysely@0.25.0)(pg@8.11.3)
@@ -260,9 +263,6 @@ importers:
       '@revelationsai/core':
         specifier: workspace:*
         version: link:../core
-      '@sentry/esbuild-plugin':
-        specifier: ^2.10.2
-        version: 2.10.2
       '@sentry/serverless':
         specifier: ^7.88.0
         version: 7.88.0
