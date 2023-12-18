@@ -6,8 +6,8 @@ export default defineConfig({
 	plugins: [
 		sentrySvelteKit({
 			sourceMapsUploadOptions: {
-				org: 'ian-pascoe',
-				project: 'javascript'
+				org: 'revelationsai',
+				project: 'svelte-kit'
 			}
 		}),
 		sveltekit()

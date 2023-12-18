@@ -44,8 +44,8 @@ export function Constants({ stack, app }: StackContext) {
         plugins: [
           sentryEsbuildPlugin({
             authToken: process.env.SENTRY_AUTH_TOKEN,
-            org: 'ian-pascoe',
-            project: 'node-awslambda'
+            org: 'revelationsai',
+            project: 'sst'
           })
         ],
         minify: stack.stage === 'prod',
