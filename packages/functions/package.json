@@ -23,6 +23,7 @@
     "@middy/http-cors": "^5.1.0",
     "@middy/http-error-handler": "^5.1.0",
     "@revelationsai/core": "workspace:*",
+    "@sentry/serverless": "^7.88.0",
     "@upstash/redis": "^1.25.2",
     "ai": "^2.2.29",
     "argon2": "^0.31.2",

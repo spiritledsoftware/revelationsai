@@ -6,46 +6,49 @@ import {
   OkResponse,
   UnauthorizedResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { validApiHandlerSession } from '@services/session';
 import { getUser, getUserQueryCountsByUserId } from '@services/user';
 import { ApiHandler } from 'sst/node/api';
 
-export const handler = ApiHandler(async (event) => {
-  const id = event.pathParameters!.id!;
-  const searchParams = event.queryStringParameters ?? {};
-  const limit = parseInt(searchParams.limit ?? '25');
-  const page = parseInt(searchParams.page ?? '1');
-  const orderBy = searchParams.orderBy ?? 'createdAt';
-  const order = searchParams.order ?? 'desc';
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    const id = event.pathParameters!.id!;
+    const searchParams = event.queryStringParameters ?? {};
+    const limit = parseInt(searchParams.limit ?? '25');
+    const page = parseInt(searchParams.page ?? '1');
+    const orderBy = searchParams.orderBy ?? 'createdAt';
+    const order = searchParams.order ?? 'desc';
 
-  try {
-    const user = await getUser(id);
-    if (!user) {
-      return ObjectNotFoundResponse(id);
+    try {
+      const user = await getUser(id);
+      if (!user) {
+        return ObjectNotFoundResponse(id);
+      }
+
+      const { isValid, userWithRoles } = await validApiHandlerSession();
+      if (!isValid || user.id !== userWithRoles.id) {
+        return UnauthorizedResponse("You are not authorized to view this user's query count.");
+      }
+
+      const queryCounts = await getUserQueryCountsByUserId(id, {
+        limit,
+        offset: (page - 1) * limit,
+        orderBy: buildOrderBy(userQueryCounts, orderBy, order)
+      });
+
+      return OkResponse({
+        entities: queryCounts,
+        page,
+        perPage: limit
+      });
+    } catch (error) {
+      console.error('Error getting user query counts:', error);
+      if (error instanceof Error) {
+        return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
+      } else {
+        return InternalServerErrorResponse(JSON.stringify(error));
+      }
     }
-
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || user.id !== userWithRoles.id) {
-      return UnauthorizedResponse("You are not authorized to view this user's query count.");
-    }
-
-    const queryCounts = await getUserQueryCountsByUserId(id, {
-      limit,
-      offset: (page - 1) * limit,
-      orderBy: buildOrderBy(userQueryCounts, orderBy, order)
-    });
-
-    return OkResponse({
-      entities: queryCounts,
-      page,
-      perPage: limit
-    });
-  } catch (error) {
-    console.error('Error getting user query counts:', error);
-    if (error instanceof Error) {
-      return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
-    } else {
-      return InternalServerErrorResponse(JSON.stringify(error));
-    }
-  }
-});
+  })
+);

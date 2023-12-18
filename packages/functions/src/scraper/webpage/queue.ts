@@ -1,12 +1,13 @@
 import type { IndexOperation } from '@core/model';
 import { indexOperations } from '@core/schema';
+import * as Sentry from '@sentry/serverless';
 import { getDataSourceOrThrow } from '@services/data-source';
 import { getIndexOperationOrThrow, updateIndexOperation } from '@services/data-source/index-op';
 import type { SQSHandler } from 'aws-lambda';
 import { sql } from 'drizzle-orm';
 import { generatePageContentEmbeddings } from '../../services/web-scraper';
 
-export const consumer: SQSHandler = async (event) => {
+export const consumer: SQSHandler = Sentry.AWSLambda.wrapHandler(async (event) => {
   console.log('Received event: ', JSON.stringify(event));
   const records = event.Records;
   console.log('Processing event: ', JSON.stringify(records[0]));
@@ -76,7 +77,7 @@ export const consumer: SQSHandler = async (event) => {
     }
     throw err;
   }
-};
+});
 
 const checkIfIndexOpIsCompletedAndUpdate = async (indexOp: IndexOperation) => {
   try {

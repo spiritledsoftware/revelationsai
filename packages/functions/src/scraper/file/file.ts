@@ -3,6 +3,7 @@ import { unstructuredConfig, vectorDBConfig } from '@core/configs';
 import type { IndexOperation } from '@core/model';
 import { indexOperations } from '@core/schema';
 import type { Metadata } from '@core/types/metadata';
+import * as Sentry from '@sentry/serverless';
 import { getDataSourceOrThrow, updateDataSource } from '@services/data-source';
 import { createIndexOperation, updateIndexOperation } from '@services/data-source/index-op';
 import { getDocumentVectorStore } from '@services/vector-db';
@@ -21,7 +22,7 @@ import { join } from 'path';
 
 const s3Client = new S3Client({});
 
-export const handler: S3Handler = async (event) => {
+export const handler: S3Handler = Sentry.AWSLambda.wrapHandler(async (event) => {
   const records = event.Records;
   const { bucket, object } = records[0].s3;
 
@@ -163,4 +164,4 @@ export const handler: S3Handler = async (event) => {
 
     throw error;
   }
-};
+});

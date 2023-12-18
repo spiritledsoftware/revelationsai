@@ -1,9 +1,10 @@
 import { indexOperations } from '@core/schema';
+import * as Sentry from '@sentry/serverless';
 import { getIndexOperations, updateIndexOperation } from '@services/data-source';
 import type { Handler } from 'aws-lambda';
 import { and, eq, lt } from 'drizzle-orm';
 
-export const handler: Handler = async (event) => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event) => {
   console.log('Cleaning up old index ops:', event);
 
   // Get all index ops that are running and older than 1 day
@@ -27,4 +28,4 @@ export const handler: Handler = async (event) => {
       });
     })
   );
-};
+});

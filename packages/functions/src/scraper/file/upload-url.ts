@@ -7,59 +7,62 @@ import {
   OkResponse,
   UnauthorizedResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { validApiHandlerSession } from '@services/session';
 import { isAdminSync } from '@services/user';
 import { ApiHandler } from 'sst/node/api';
 
 const s3Client = new S3Client({});
 
-export const handler = ApiHandler(async (event) => {
-  console.log('Received file upload url generation event:', event);
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    console.log('Received file upload url generation event:', event);
 
-  const {
-    name,
-    url,
-    fileName,
-    fileType,
-    metadata = '{}',
-    dataSourceId
-  } = JSON.parse(event.body || '{}');
+    const {
+      name,
+      url,
+      fileName,
+      fileType,
+      metadata = '{}',
+      dataSourceId
+    } = JSON.parse(event.body || '{}');
 
-  if (!name || !url || !fileName || !fileType || !dataSourceId) {
-    return BadRequestResponse('Missing required fields');
-  }
-
-  try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
-      return UnauthorizedResponse();
+    if (!name || !url || !fileName || !fileType || !dataSourceId) {
+      return BadRequestResponse('Missing required fields');
     }
 
-    const s3Url = await getSignedUrl(
-      s3Client,
-      new PutObjectCommand({
-        ACL: 'public-read',
-        ContentType: fileType,
-        Bucket: s3Config.indexFileBucket,
-        Key: fileName,
-        Metadata: {
-          ...JSON.parse(metadata),
-          dataSourceId,
-          name,
-          url
-        }
-      })
-    );
+    try {
+      const { isValid, userWithRoles } = await validApiHandlerSession();
+      if (!isValid || !isAdminSync(userWithRoles)) {
+        return UnauthorizedResponse();
+      }
 
-    return OkResponse({
-      url: s3Url
-    });
-  } catch (error) {
-    console.error('Error generating file upload url:', error);
-    if (error instanceof Error) {
-      return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
-    } else {
-      return InternalServerErrorResponse(JSON.stringify(error));
+      const s3Url = await getSignedUrl(
+        s3Client,
+        new PutObjectCommand({
+          ACL: 'public-read',
+          ContentType: fileType,
+          Bucket: s3Config.indexFileBucket,
+          Key: fileName,
+          Metadata: {
+            ...JSON.parse(metadata),
+            dataSourceId,
+            name,
+            url
+          }
+        })
+      );
+
+      return OkResponse({
+        url: s3Url
+      });
+    } catch (error) {
+      console.error('Error generating file upload url:', error);
+      if (error instanceof Error) {
+        return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
+      } else {
+        return InternalServerErrorResponse(JSON.stringify(error));
+      }
     }
-  }
-});
+  })
+);

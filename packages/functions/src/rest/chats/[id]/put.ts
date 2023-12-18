@@ -5,35 +5,38 @@ import {
   OkResponse,
   UnauthorizedResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { getChat, updateChat } from '@services/chat/chat';
 import { validApiHandlerSession } from '@services/session';
 import { isObjectOwner } from '@services/user';
 import { ApiHandler } from 'sst/node/api';
 
-export const handler = ApiHandler(async (event) => {
-  const id = event.pathParameters!.id!;
-  const data = JSON.parse(event.body ?? '{}');
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    const id = event.pathParameters!.id!;
+    const data = JSON.parse(event.body ?? '{}');
 
-  try {
-    let chat: Chat | undefined = await getChat(id);
-    if (!chat) {
-      return ObjectNotFoundResponse(id);
+    try {
+      let chat: Chat | undefined = await getChat(id);
+      if (!chat) {
+        return ObjectNotFoundResponse(id);
+      }
+
+      const { isValid, userWithRoles } = await validApiHandlerSession();
+      if (!isValid || !isObjectOwner(chat, userWithRoles.id)) {
+        return UnauthorizedResponse('You are not authorized to edit this chat');
+      }
+
+      chat = await updateChat(chat!.id, data);
+
+      return OkResponse(chat);
+    } catch (error) {
+      console.error(`Error updating chat '${id}':`, error);
+      if (error instanceof Error) {
+        return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
+      } else {
+        return InternalServerErrorResponse(JSON.stringify(error));
+      }
     }
-
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isObjectOwner(chat, userWithRoles.id)) {
-      return UnauthorizedResponse('You are not authorized to edit this chat');
-    }
-
-    chat = await updateChat(chat!.id, data);
-
-    return OkResponse(chat);
-  } catch (error) {
-    console.error(`Error updating chat '${id}':`, error);
-    if (error instanceof Error) {
-      return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
-    } else {
-      return InternalServerErrorResponse(JSON.stringify(error));
-    }
-  }
-});
+  })
+);

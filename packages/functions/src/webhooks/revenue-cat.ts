@@ -5,6 +5,7 @@ import {
   OkResponse,
   UnauthorizedResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { addRoleToUser, doesUserHaveRole, getRoleByName, removeRoleFromUser } from '@services/role';
 import { getUser, getUserRoles } from '@services/user';
 import { ApiHandler } from 'sst/node/api';
@@ -57,87 +58,89 @@ type Event = {
     | 'SUBSCRIBER_ALIAS';
 };
 
-export const handler = ApiHandler(async (event) => {
-  console.log('Received Revenue Cat event: ', event);
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    console.log('Received Revenue Cat event: ', event);
 
-  const authHeader = event.headers['authorization'];
-  if (!authHeader) {
-    return UnauthorizedResponse();
-  } else {
-    const [authType, authKey] = authHeader.split(' ');
-    if (authType !== 'Bearer') {
-      return BadRequestResponse('Invalid authorization header');
-    } else if (authKey !== process.env.REVENUECAT_WEBHOOK_SECRET) {
-      return ForbiddenResponse();
+    const authHeader = event.headers['authorization'];
+    if (!authHeader) {
+      return UnauthorizedResponse();
     } else {
-      console.log('Authorized Revenue Cat webhook');
-    }
-  }
-
-  if (!event.body) {
-    return BadRequestResponse('Missing body');
-  }
-
-  const body: RootEventObject = JSON.parse(event.body);
-
-  if (body.api_version !== '1.0') {
-    return BadRequestResponse('Invalid API version');
-  }
-
-  try {
-    const eventObj = body.event;
-    if (eventObj.type === 'INITIAL_PURCHASE' || eventObj.type === 'RENEWAL') {
-      console.log('Purchase event: ', eventObj);
-      const user = await getUser(eventObj.app_user_id);
-      if (!user) {
-        return BadRequestResponse('User not found');
+      const [authType, authKey] = authHeader.split(' ');
+      if (authType !== 'Bearer') {
+        return BadRequestResponse('Invalid authorization header');
+      } else if (authKey !== process.env.REVENUECAT_WEBHOOK_SECRET) {
+        return ForbiddenResponse();
+      } else {
+        console.log('Authorized Revenue Cat webhook');
       }
+    }
 
-      // Remove all existing RC roles
-      await getUserRoles(user.id).then(async (roles) => {
-        for (const role of roles) {
-          if (role.name.startsWith('rc:')) {
-            await removeRoleFromUser(role.name, user.id);
-          }
-        }
-      });
+    if (!event.body) {
+      return BadRequestResponse('Missing body');
+    }
 
-      // Add new RC roles
-      for (const entitlementId of eventObj.entitlement_ids) {
-        const role = await getRoleByName(`rc:${entitlementId}`);
-        if (!role) {
-          return BadRequestResponse('Role not found');
+    const body: RootEventObject = JSON.parse(event.body);
+
+    if (body.api_version !== '1.0') {
+      return BadRequestResponse('Invalid API version');
+    }
+
+    try {
+      const eventObj = body.event;
+      if (eventObj.type === 'INITIAL_PURCHASE' || eventObj.type === 'RENEWAL') {
+        console.log('Purchase event: ', eventObj);
+        const user = await getUser(eventObj.app_user_id);
+        if (!user) {
+          return BadRequestResponse('User not found');
         }
-        await doesUserHaveRole(role.name, user.id).then(async (hasRole) => {
-          if (!hasRole) {
-            await addRoleToUser(role.name, user.id);
+
+        // Remove all existing RC roles
+        await getUserRoles(user.id).then(async (roles) => {
+          for (const role of roles) {
+            if (role.name.startsWith('rc:')) {
+              await removeRoleFromUser(role.name, user.id);
+            }
           }
         });
-      }
-    } else if (eventObj.type === 'EXPIRATION') {
-      console.log('Expiration event: ', eventObj);
-      const user = await getUser(eventObj.app_user_id);
-      if (!user) {
-        return BadRequestResponse('User not found');
-      }
 
-      // Remove all RC roles
-      await getUserRoles(user.id).then(async (roles) => {
-        for (const role of roles) {
-          if (role.name.startsWith('rc:')) {
-            await removeRoleFromUser(role.name, user.id);
+        // Add new RC roles
+        for (const entitlementId of eventObj.entitlement_ids) {
+          const role = await getRoleByName(`rc:${entitlementId}`);
+          if (!role) {
+            return BadRequestResponse('Role not found');
           }
+          await doesUserHaveRole(role.name, user.id).then(async (hasRole) => {
+            if (!hasRole) {
+              await addRoleToUser(role.name, user.id);
+            }
+          });
         }
-      });
-    } else if (eventObj.type === 'TEST') {
-      console.log('Test event: ', eventObj);
-    } else {
-      console.log('Unhandled event type: ', eventObj.type);
-    }
+      } else if (eventObj.type === 'EXPIRATION') {
+        console.log('Expiration event: ', eventObj);
+        const user = await getUser(eventObj.app_user_id);
+        if (!user) {
+          return BadRequestResponse('User not found');
+        }
 
-    return OkResponse();
-  } catch (error: unknown) {
-    console.error(error);
-    return InternalServerErrorResponse((error as Error).message);
-  }
-});
+        // Remove all RC roles
+        await getUserRoles(user.id).then(async (roles) => {
+          for (const role of roles) {
+            if (role.name.startsWith('rc:')) {
+              await removeRoleFromUser(role.name, user.id);
+            }
+          }
+        });
+      } else if (eventObj.type === 'TEST') {
+        console.log('Test event: ', eventObj);
+      } else {
+        console.log('Unhandled event type: ', eventObj.type);
+      }
+
+      return OkResponse();
+    } catch (error: unknown) {
+      console.error(error);
+      return InternalServerErrorResponse((error as Error).message);
+    }
+  })
+);

@@ -4,32 +4,35 @@ import {
   OkResponse,
   UnauthorizedResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { getUserGeneratedImage } from '@services/generated-image/generated-image';
 import { validApiHandlerSession } from '@services/session';
 import { isObjectOwner } from '@services/user';
 import { ApiHandler } from 'sst/node/api';
 
-export const handler = ApiHandler(async (event) => {
-  const id = event.pathParameters!.id!;
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    const id = event.pathParameters!.id!;
 
-  try {
-    const image = await getUserGeneratedImage(id);
-    if (!image) {
-      return ObjectNotFoundResponse(id);
-    }
+    try {
+      const image = await getUserGeneratedImage(id);
+      if (!image) {
+        return ObjectNotFoundResponse(id);
+      }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isObjectOwner(image, userWithRoles.id)) {
-      return UnauthorizedResponse('You are not authorized to view this image');
-    }
+      const { isValid, userWithRoles } = await validApiHandlerSession();
+      if (!isValid || !isObjectOwner(image, userWithRoles.id)) {
+        return UnauthorizedResponse('You are not authorized to view this image');
+      }
 
-    return OkResponse(image);
-  } catch (error) {
-    console.error(`Error getting user generated image '${id}':`, error);
-    if (error instanceof Error) {
-      return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
-    } else {
-      return InternalServerErrorResponse(JSON.stringify(error));
+      return OkResponse(image);
+    } catch (error) {
+      console.error(`Error getting user generated image '${id}':`, error);
+      if (error instanceof Error) {
+        return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
+      } else {
+        return InternalServerErrorResponse(JSON.stringify(error));
+      }
     }
-  }
-});
+  })
+);

@@ -3,6 +3,7 @@ import type { Chat } from '@core/model';
 import { aiResponsesToSourceDocuments, userMessages } from '@core/schema';
 import { readWriteDatabase } from '@lib/database';
 import middy from '@middy/core';
+import * as Sentry from '@sentry/serverless';
 import {
   createAiResponse,
   getAiResponse,
@@ -54,237 +55,237 @@ const validateRequest = (
   return undefined;
 };
 
-const lambdaHandler = async (
-  event: APIGatewayProxyEventV2
-): Promise<StreamedAPIGatewayProxyStructuredResultV2> => {
-  console.log(`Received Chat Request Event: ${JSON.stringify(event)}`);
+const lambdaHandler = Sentry.AWSLambda.wrapHandler(
+  async (event: APIGatewayProxyEventV2): Promise<StreamedAPIGatewayProxyStructuredResultV2> => {
+    console.log(`Received Chat Request Event: ${JSON.stringify(event)}`);
 
-  const validationResponse = validateRequest(event);
-  if (validationResponse) {
-    return validationResponse;
-  }
+    const validationResponse = validateRequest(event);
+    if (validationResponse) {
+      return validationResponse;
+    }
 
-  const pendingPromises: Promise<unknown>[] = []; // promises to wait for before closing the stream
+    const pendingPromises: Promise<unknown>[] = []; // promises to wait for before closing the stream
 
-  if (!event.body) {
-    console.log('Missing body');
-    return {
-      statusCode: 400,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: Readable.from([JSON.stringify({ error: 'Missing body' })])
-    };
-  }
-
-  const { messages = [], chatId }: { messages: RAIChatMessage[]; chatId?: string } = JSON.parse(
-    event.body
-  );
-
-  try {
-    const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || lastMessage.role !== 'user') {
-      console.log('Invalid last message');
+    if (!event.body) {
+      console.log('Missing body');
       return {
         statusCode: 400,
         headers: {
           'Content-Type': 'application/json'
         },
-        body: Readable.from([JSON.stringify({ error: 'Invalid last message' })])
+        body: Readable.from([JSON.stringify({ error: 'Missing body' })])
       };
     }
 
-    console.time('Validating session token');
-    const { isValid, userInfo } = await validSessionFromEvent(event);
-    if (!isValid) {
-      console.log('Invalid session token');
+    const { messages = [], chatId }: { messages: RAIChatMessage[]; chatId?: string } = JSON.parse(
+      event.body
+    );
+
+    try {
+      const lastMessage = messages[messages.length - 1];
+      if (!lastMessage || lastMessage.role !== 'user') {
+        console.log('Invalid last message');
+        return {
+          statusCode: 400,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: Readable.from([JSON.stringify({ error: 'Invalid last message' })])
+        };
+      }
+
+      console.time('Validating session token');
+      const { isValid, userInfo } = await validSessionFromEvent(event);
+      if (!isValid) {
+        console.log('Invalid session token');
+        return {
+          statusCode: 401,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: Readable.from([JSON.stringify({ error: 'Invalid session token' })])
+        };
+      }
+      console.timeEnd('Validating session token');
+
+      if (userInfo.remainingQueries <= 0) {
+        console.log(`Max daily query count of ${userInfo.maxQueries} reached`);
+        return {
+          statusCode: 429,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: Readable.from([
+            JSON.stringify({
+              error: `Max daily query count of ${userInfo.maxQueries} reached`
+            })
+          ])
+        };
+      }
+      const incrementQueryCountPromise = incrementUserQueryCount(userInfo.id);
+      pendingPromises.push(incrementQueryCountPromise);
+
+      console.time('Validating chat');
+      const chat = chatId
+        ? await getChat(chatId).then(async (foundChat) => {
+            if (!foundChat || !isObjectOwner(foundChat, userInfo.id)) {
+              return await createChat({
+                userId: userInfo.id
+              });
+            }
+            return foundChat;
+          })
+        : await createChat({
+            userId: userInfo.id
+          });
+
+      console.timeEnd('Validating chat');
+
+      if (!chat.customName) {
+        pendingPromises.push(aiRenameChat(chat.id, messages));
+      } else {
+        pendingPromises.push(
+          updateChat(chat.id, {
+            updatedAt: new Date()
+          })
+        );
+      }
+
+      console.time('Validating user message');
+      const userMessage = await getUserMessages({
+        where: and(
+          eq(userMessages.chatId, chat.id),
+          lastMessage.uuid
+            ? eq(userMessages.id, lastMessage.uuid)
+            : or(eq(userMessages.text, lastMessage.content), eq(userMessages.aiId, lastMessage.id))
+        )
+      }).then(async (userMessages) => {
+        const userMessage = userMessages.at(0);
+        if (userMessage) {
+          pendingPromises.push(
+            getAiResponsesByUserMessageId(userMessage.id).then(async (aiResponses) => {
+              await Promise.all(
+                aiResponses.map(async (aiResponse) => {
+                  await updateAiResponse(aiResponse.id, {
+                    regenerated: true
+                  });
+                })
+              );
+            })
+          );
+          return userMessage;
+        }
+        return await createUserMessage({
+          aiId: lastMessage.id,
+          text: lastMessage.content,
+          chatId: chat.id,
+          userId: userInfo.id
+        });
+      });
+      console.timeEnd('Validating user message');
+
+      const aiResponseId = uuidV4();
+      const { stream, handlers } = LangChainStream();
+      const chain = await getRAIChatChain({
+        user: userInfo,
+        messages,
+        callbacks: CallbackManager.fromHandlers(handlers)
+      });
+      const langChainResponsePromise = chain
+        .invoke({
+          query: lastMessage.content
+        })
+        .then(async (result) => {
+          console.log(`LangChain result: ${JSON.stringify(result)}`);
+          const sourceDocuments =
+            result.sourceDocuments?.filter((d1, i, arr) => {
+              return arr.findIndex((d2) => d2.id === d1.id) === i;
+            }) ?? [];
+          await postResponseValidationLogic({
+            chat,
+            userMessageId: userMessage.id,
+            aiResponseId,
+            userId: userInfo.id,
+            lastMessage,
+            response: result.text,
+            sourceDocuments
+          });
+          return result;
+        })
+        .catch(async (err) => {
+          console.error(`Error: ${err.stack}`);
+          await Promise.all([
+            incrementQueryCountPromise.then(() => {
+              decrementUserQueryCount(userInfo.id);
+            }),
+            getAiResponse(aiResponseId).then(async (aiResponse) => {
+              if (aiResponse) {
+                await updateAiResponse(aiResponse.id, {
+                  failed: true
+                });
+              }
+            })
+          ]);
+          throw err;
+        });
+      pendingPromises.push(langChainResponsePromise);
+
+      const reader = stream.getReader();
       return {
-        statusCode: 401,
+        statusCode: 200,
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'text/plain; charset=utf-8',
+          'x-chat-id': chat.id,
+          'x-user-message-id': userMessage.id,
+          'x-ai-response-id': aiResponseId
         },
-        body: Readable.from([JSON.stringify({ error: 'Invalid session token' })])
+        body: new Readable({
+          read() {
+            reader
+              .read()
+              .then(async ({ done, value }: { done: boolean; value?: unknown }) => {
+                if (done) {
+                  console.log('Finished chat stream response');
+                  await Promise.all(pendingPromises); // make sure everything is done before destroying the stream
+                  this.push(null);
+                  this.destroy();
+                  return;
+                }
+                if (value) {
+                  console.log(`Pushing ${typeof value}: ${value}`);
+                  this.push(value, 'utf-8');
+                }
+                this.read();
+              })
+              .catch(async (err) => {
+                console.error(`Error while streaming response: ${err}`);
+                await Promise.all(pendingPromises); // make sure everything is done before destroying the stream
+                this.push(null);
+                this.destroy(err);
+                throw err;
+              });
+          }
+        })
       };
-    }
-    console.timeEnd('Validating session token');
-
-    if (userInfo.remainingQueries <= 0) {
-      console.log(`Max daily query count of ${userInfo.maxQueries} reached`);
+    } catch (error) {
+      console.error(`Caught error: ${JSON.stringify(error)}`);
       return {
-        statusCode: 429,
+        statusCode: 500,
         headers: {
           'Content-Type': 'application/json'
         },
         body: Readable.from([
           JSON.stringify({
-            error: `Max daily query count of ${userInfo.maxQueries} reached`
+            error:
+              error instanceof Error
+                ? `${error.message}: ${error.stack}`
+                : `Error: ${JSON.stringify(error)}`
           })
         ])
       };
     }
-    const incrementQueryCountPromise = incrementUserQueryCount(userInfo.id);
-    pendingPromises.push(incrementQueryCountPromise);
-
-    console.time('Validating chat');
-    const chat = chatId
-      ? await getChat(chatId).then(async (foundChat) => {
-          if (!foundChat || !isObjectOwner(foundChat, userInfo.id)) {
-            return await createChat({
-              userId: userInfo.id
-            });
-          }
-          return foundChat;
-        })
-      : await createChat({
-          userId: userInfo.id
-        });
-
-    console.timeEnd('Validating chat');
-
-    if (!chat.customName) {
-      pendingPromises.push(aiRenameChat(chat.id, messages));
-    } else {
-      pendingPromises.push(
-        updateChat(chat.id, {
-          updatedAt: new Date()
-        })
-      );
-    }
-
-    console.time('Validating user message');
-    const userMessage = await getUserMessages({
-      where: and(
-        eq(userMessages.chatId, chat.id),
-        lastMessage.uuid
-          ? eq(userMessages.id, lastMessage.uuid)
-          : or(eq(userMessages.text, lastMessage.content), eq(userMessages.aiId, lastMessage.id))
-      )
-    }).then(async (userMessages) => {
-      const userMessage = userMessages.at(0);
-      if (userMessage) {
-        pendingPromises.push(
-          getAiResponsesByUserMessageId(userMessage.id).then(async (aiResponses) => {
-            await Promise.all(
-              aiResponses.map(async (aiResponse) => {
-                await updateAiResponse(aiResponse.id, {
-                  regenerated: true
-                });
-              })
-            );
-          })
-        );
-        return userMessage;
-      }
-      return await createUserMessage({
-        aiId: lastMessage.id,
-        text: lastMessage.content,
-        chatId: chat.id,
-        userId: userInfo.id
-      });
-    });
-    console.timeEnd('Validating user message');
-
-    const aiResponseId = uuidV4();
-    const { stream, handlers } = LangChainStream();
-    const chain = await getRAIChatChain({
-      user: userInfo,
-      messages,
-      callbacks: CallbackManager.fromHandlers(handlers)
-    });
-    const langChainResponsePromise = chain
-      .invoke({
-        query: lastMessage.content
-      })
-      .then(async (result) => {
-        console.log(`LangChain result: ${JSON.stringify(result)}`);
-        const sourceDocuments =
-          result.sourceDocuments?.filter((d1, i, arr) => {
-            return arr.findIndex((d2) => d2.id === d1.id) === i;
-          }) ?? [];
-        await postResponseValidationLogic({
-          chat,
-          userMessageId: userMessage.id,
-          aiResponseId,
-          userId: userInfo.id,
-          lastMessage,
-          response: result.text,
-          sourceDocuments
-        });
-        return result;
-      })
-      .catch(async (err) => {
-        console.error(`Error: ${err.stack}`);
-        await Promise.all([
-          incrementQueryCountPromise.then(() => {
-            decrementUserQueryCount(userInfo.id);
-          }),
-          getAiResponse(aiResponseId).then(async (aiResponse) => {
-            if (aiResponse) {
-              await updateAiResponse(aiResponse.id, {
-                failed: true
-              });
-            }
-          })
-        ]);
-        throw err;
-      });
-    pendingPromises.push(langChainResponsePromise);
-
-    const reader = stream.getReader();
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'x-chat-id': chat.id,
-        'x-user-message-id': userMessage.id,
-        'x-ai-response-id': aiResponseId
-      },
-      body: new Readable({
-        read() {
-          reader
-            .read()
-            .then(async ({ done, value }: { done: boolean; value?: unknown }) => {
-              if (done) {
-                console.log('Finished chat stream response');
-                await Promise.all(pendingPromises); // make sure everything is done before destroying the stream
-                this.push(null);
-                this.destroy();
-                return;
-              }
-              if (value) {
-                console.log(`Pushing ${typeof value}: ${value}`);
-                this.push(value, 'utf-8');
-              }
-              this.read();
-            })
-            .catch(async (err) => {
-              console.error(`Error while streaming response: ${err}`);
-              await Promise.all(pendingPromises); // make sure everything is done before destroying the stream
-              this.push(null);
-              this.destroy(err);
-              throw err;
-            });
-        }
-      })
-    };
-  } catch (error) {
-    console.error(`Caught error: ${JSON.stringify(error)}`);
-    return {
-      statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: Readable.from([
-        JSON.stringify({
-          error:
-            error instanceof Error
-              ? `${error.message}: ${error.stack}`
-              : `Error: ${JSON.stringify(error)}`
-        })
-      ])
-    };
   }
-};
+);
 
 const postResponseValidationLogic = async ({
   chat,

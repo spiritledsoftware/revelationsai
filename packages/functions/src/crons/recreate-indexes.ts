@@ -1,8 +1,9 @@
 import { databaseConfig, vectorDBConfig } from '@core/configs';
+import * as Sentry from '@sentry/serverless';
 import type { Handler } from 'aws-lambda';
 import { Job } from 'sst/node/job';
 
-export const handler: Handler = async (event) => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event) => {
   console.log('Recreating db indexes:', event);
 
   try {
@@ -25,4 +26,4 @@ export const handler: Handler = async (event) => {
     console.log("Couldn't recreate db indexes:", e);
     throw e;
   }
-};
+});

@@ -4,31 +4,34 @@ import {
   OkResponse,
   UnauthorizedResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { validApiHandlerSession } from '@services/session';
 import { isObjectOwner } from '@services/user';
 import { getUserMessage } from '@services/user/message';
 import { ApiHandler } from 'sst/node/api';
 
-export const handler = ApiHandler(async (event) => {
-  const id = event.pathParameters!.id!;
-  try {
-    const userMessage = await getUserMessage(id);
-    if (!userMessage) {
-      return ObjectNotFoundResponse(id);
-    }
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    const id = event.pathParameters!.id!;
+    try {
+      const userMessage = await getUserMessage(id);
+      if (!userMessage) {
+        return ObjectNotFoundResponse(id);
+      }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isObjectOwner(userMessage, userWithRoles.id)) {
-      return UnauthorizedResponse('You are not authorized to view this message');
-    }
+      const { isValid, userWithRoles } = await validApiHandlerSession();
+      if (!isValid || !isObjectOwner(userMessage, userWithRoles.id)) {
+        return UnauthorizedResponse('You are not authorized to view this message');
+      }
 
-    return OkResponse(userMessage);
-  } catch (error) {
-    console.error(`Error getting user message '${id}':`, error);
-    if (error instanceof Error) {
-      return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
-    } else {
-      return InternalServerErrorResponse(JSON.stringify(error));
+      return OkResponse(userMessage);
+    } catch (error) {
+      console.error(`Error getting user message '${id}':`, error);
+      if (error instanceof Error) {
+        return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
+      } else {
+        return InternalServerErrorResponse(JSON.stringify(error));
+      }
     }
-  }
-});
+  })
+);

@@ -7,6 +7,7 @@ import {
   OkResponse,
   RedirectResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { addRoleToUser, doesUserHaveRole } from '@services/role';
 import { createUser, getUserByEmail, updateUser } from '@services/user';
 import {
@@ -307,13 +308,15 @@ const createCredentialsAdapter = (
     }
   });
 
-export const handler = AuthHandler({
-  providers: {
-    google: createGoogleAdapter(),
-    'google-mobile': createGoogleAdapter('revelationsai://revelationsai/auth/callback'),
-    apple: createAppleAdapter(),
-    'apple-mobile': createAppleAdapter('revelationsai://revelationsai/auth/callback'),
-    credentials: createCredentialsAdapter(),
-    'credentials-mobile': createCredentialsAdapter('revelationsai://revelationsai/auth', true)
-  }
-});
+export const handler = Sentry.AWSLambda.wrapHandler(
+  AuthHandler({
+    providers: {
+      google: createGoogleAdapter(),
+      'google-mobile': createGoogleAdapter('revelationsai://revelationsai/auth/callback'),
+      apple: createAppleAdapter(),
+      'apple-mobile': createAppleAdapter('revelationsai://revelationsai/auth/callback'),
+      credentials: createCredentialsAdapter(),
+      'credentials-mobile': createCredentialsAdapter('revelationsai://revelationsai/auth', true)
+    }
+  })
+);

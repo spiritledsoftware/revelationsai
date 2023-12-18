@@ -3,27 +3,30 @@ import {
   ObjectNotFoundResponse,
   OkResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { getDevotion, getDevotionReactionCounts } from '@services/devotion';
 import { ApiHandler } from 'sst/node/api';
 
-export const handler = ApiHandler(async (event) => {
-  const id = event.pathParameters!.id!;
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    const id = event.pathParameters!.id!;
 
-  try {
-    const devotion = await getDevotion(id);
-    if (!devotion) {
-      return ObjectNotFoundResponse(id);
+    try {
+      const devotion = await getDevotion(id);
+      if (!devotion) {
+        return ObjectNotFoundResponse(id);
+      }
+
+      const devoReactionCounts = await getDevotionReactionCounts(id);
+
+      return OkResponse(devoReactionCounts);
+    } catch (err) {
+      console.error(`Error getting reaction counts for devotion '${id}':`, err);
+      if (err instanceof Error) {
+        return InternalServerErrorResponse(`${err.message}\n${err.stack}`);
+      } else {
+        return InternalServerErrorResponse(JSON.stringify(err));
+      }
     }
-
-    const devoReactionCounts = await getDevotionReactionCounts(id);
-
-    return OkResponse(devoReactionCounts);
-  } catch (err) {
-    console.error(`Error getting reaction counts for devotion '${id}':`, err);
-    if (err instanceof Error) {
-      return InternalServerErrorResponse(`${err.message}\n${err.stack}`);
-    } else {
-      return InternalServerErrorResponse(JSON.stringify(err));
-    }
-  }
-});
+  })
+);

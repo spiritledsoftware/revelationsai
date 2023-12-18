@@ -7,44 +7,47 @@ import {
   OkResponse,
   UnauthorizedResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { validApiHandlerSession } from '@services/session';
 import { ApiHandler } from 'sst/node/api';
 
 const s3Client = new S3Client({});
 
-export const handler = ApiHandler(async (event) => {
-  console.log('Received profile picture url generation event:', event);
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    console.log('Received profile picture url generation event:', event);
 
-  const { fileType } = JSON.parse(event.body || '{}');
-  if (!fileType) {
-    return BadRequestResponse('Missing fileType');
-  }
-
-  try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid) {
-      return UnauthorizedResponse();
+    const { fileType } = JSON.parse(event.body || '{}');
+    if (!fileType) {
+      return BadRequestResponse('Missing fileType');
     }
 
-    const s3Url = await getSignedUrl(
-      s3Client,
-      new PutObjectCommand({
-        ACL: 'public-read',
-        ContentType: fileType,
-        Bucket: s3Config.userProfilePictureBucket,
-        Key: `${userWithRoles.id}-${Date.now()}`
-      })
-    );
+    try {
+      const { isValid, userWithRoles } = await validApiHandlerSession();
+      if (!isValid) {
+        return UnauthorizedResponse();
+      }
 
-    return OkResponse({
-      url: s3Url
-    });
-  } catch (error) {
-    console.error('Error generating profile picture url:', error);
-    if (error instanceof Error) {
-      return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
-    } else {
-      return InternalServerErrorResponse(JSON.stringify(error));
+      const s3Url = await getSignedUrl(
+        s3Client,
+        new PutObjectCommand({
+          ACL: 'public-read',
+          ContentType: fileType,
+          Bucket: s3Config.userProfilePictureBucket,
+          Key: `${userWithRoles.id}-${Date.now()}`
+        })
+      );
+
+      return OkResponse({
+        url: s3Url
+      });
+    } catch (error) {
+      console.error('Error generating profile picture url:', error);
+      if (error instanceof Error) {
+        return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
+      } else {
+        return InternalServerErrorResponse(JSON.stringify(error));
+      }
     }
-  }
-});
+  })
+);

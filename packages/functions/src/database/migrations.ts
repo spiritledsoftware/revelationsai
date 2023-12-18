@@ -1,11 +1,12 @@
 import config from '@core/configs/database';
 import * as schema from '@core/schema';
 import { neon } from '@neondatabase/serverless';
+import * as Sentry from '@sentry/serverless';
 import type { Handler } from 'aws-lambda';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { migrate } from 'drizzle-orm/neon-http/migrator';
 
-export const handler: Handler = async () => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async () => {
   try {
     console.log('Creating database migration client using url: ', config.readWriteUrl);
 
@@ -27,4 +28,4 @@ export const handler: Handler = async () => {
     console.log(e);
     throw e;
   }
-};
+});

@@ -1,9 +1,10 @@
+import * as Sentry from '@sentry/serverless';
 import { getDailyQuery } from '@services/chat';
 import type { Handler } from 'aws-lambda';
 import firebase from 'firebase-admin';
 import path from 'path';
 
-export const handler: Handler = async (event) => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event) => {
   console.log(event);
 
   const query = await getDailyQuery();
@@ -30,4 +31,4 @@ export const handler: Handler = async (event) => {
     statusCode: 200,
     body: JSON.stringify({ message: 'Success' })
   };
-};
+});

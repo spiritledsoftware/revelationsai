@@ -3,23 +3,26 @@ import {
   ObjectNotFoundResponse,
   OkResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { getUser } from '@services/user';
 import { ApiHandler } from 'sst/node/api';
 
-export const handler = ApiHandler(async (event) => {
-  const id = event.pathParameters!.id!;
-  try {
-    const user = await getUser(id);
-    if (!user) {
-      return ObjectNotFoundResponse(id);
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    const id = event.pathParameters!.id!;
+    try {
+      const user = await getUser(id);
+      if (!user) {
+        return ObjectNotFoundResponse(id);
+      }
+      return OkResponse(user);
+    } catch (error) {
+      console.error(`Error getting user '${id}':`, error);
+      if (error instanceof Error) {
+        return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
+      } else {
+        return InternalServerErrorResponse(JSON.stringify(error));
+      }
     }
-    return OkResponse(user);
-  } catch (error) {
-    console.error(`Error getting user '${id}':`, error);
-    if (error instanceof Error) {
-      return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
-    } else {
-      return InternalServerErrorResponse(JSON.stringify(error));
-    }
-  }
-});
+  })
+);

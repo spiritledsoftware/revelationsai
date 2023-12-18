@@ -5,33 +5,36 @@ import {
   OkResponse,
   UnauthorizedResponse
 } from '@lib/api-responses';
+import * as Sentry from '@sentry/serverless';
 import { validApiHandlerSession } from '@services/session';
 import { getUser, updateUser } from '@services/user';
 import { ApiHandler } from 'sst/node/api';
 
-export const handler = ApiHandler(async (event) => {
-  const id = event.pathParameters!.id!;
-  const data: UpdateUserData = JSON.parse(event.body ?? '{}');
+export const handler = Sentry.AWSLambda.wrapHandler(
+  ApiHandler(async (event) => {
+    const id = event.pathParameters!.id!;
+    const data: UpdateUserData = JSON.parse(event.body ?? '{}');
 
-  try {
-    let user = await getUser(id);
-    if (!user) {
-      return ObjectNotFoundResponse(id);
-    }
+    try {
+      let user = await getUser(id);
+      if (!user) {
+        return ObjectNotFoundResponse(id);
+      }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || user.id !== userWithRoles.id) {
-      return UnauthorizedResponse('You are not authorized to update this user');
-    }
+      const { isValid, userWithRoles } = await validApiHandlerSession();
+      if (!isValid || user.id !== userWithRoles.id) {
+        return UnauthorizedResponse('You are not authorized to update this user');
+      }
 
-    user = await updateUser(user.id, data);
-    return OkResponse(user);
-  } catch (error) {
-    console.error(`Error updating user '${id}':`, error);
-    if (error instanceof Error) {
-      return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
-    } else {
-      return InternalServerErrorResponse(JSON.stringify(error));
+      user = await updateUser(user.id, data);
+      return OkResponse(user);
+    } catch (error) {
+      console.error(`Error updating user '${id}':`, error);
+      if (error instanceof Error) {
+        return InternalServerErrorResponse(`${error.message}\n${error.stack}`);
+      } else {
+        return InternalServerErrorResponse(JSON.stringify(error));
+      }
     }
-  }
-});
+  })
+);

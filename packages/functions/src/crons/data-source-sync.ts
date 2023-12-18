@@ -1,9 +1,10 @@
 import { dataSources } from '@core/schema';
+import * as Sentry from '@sentry/serverless';
 import { getDataSources, syncDataSource } from '@services/data-source';
 import type { Handler } from 'aws-lambda';
 import { eq, not } from 'drizzle-orm';
 
-export const handler: Handler = async (event) => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async (event) => {
   console.log('Syncing data sources:', event);
 
   const sources = await getDataSources({
@@ -36,4 +37,4 @@ export const handler: Handler = async (event) => {
       await syncDataSource(source.id, false);
     })
   );
-};
+});

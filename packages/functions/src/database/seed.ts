@@ -1,5 +1,6 @@
 import { authConfig, databaseConfig, vectorDBConfig } from '@core/configs';
 import type { User } from '@core/model';
+import * as Sentry from '@sentry/serverless';
 import {
   addRoleToUser,
   createRole,
@@ -180,7 +181,7 @@ async function createRcEntitlementRoles() {
   }
 }
 
-export const handler: Handler = async () => {
+export const handler: Handler = Sentry.AWSLambda.wrapHandler(async () => {
   try {
     console.log('Creating initial roles and users');
     await createInitialRoles();
@@ -207,4 +208,4 @@ export const handler: Handler = async () => {
     console.error('Database seeding failed:', e);
     throw e;
   }
-};
+});
