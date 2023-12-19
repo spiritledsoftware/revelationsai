@@ -5,12 +5,11 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [
 		sentrySvelteKit({
-			adapter: 'node',
+			autoInstrument: false,
 			sourceMapsUploadOptions: {
 				org: 'revelationsai',
 				project: 'svelte-kit',
-				authToken: process.env.SENTRY_AUTH_TOKEN,
-				cleanArtifacts: true
+				authToken: process.env.SENTRY_AUTH_TOKEN
 			}
 		}),
 		sveltekit()
