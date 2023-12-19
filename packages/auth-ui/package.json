@@ -50,7 +50,7 @@
 	},
 	"dependencies": {
 		"@revelationsai/core": "workspace:*",
-		"@sentry/sveltekit": "7.84.0",
+		"@sentry/sveltekit": "^7.88.0",
 		"@tanstack/svelte-query": "^5.14.1",
 		"ai": "^2.2.29",
 		"autosize": "^6.0.1",

@@ -82,10 +82,12 @@ export function Auth({ stack }: StackContext) {
     path: 'packages/auth-ui',
     bind: [api],
     permissions: [api],
+    runtime: 'nodejs20.x',
+    nodejs: {
+      install: ['@sentry/cli']
+    },
     environment: {
       ...STATIC_ENV_VARS,
-      DATABASE_READWRITE_URL: dbReadWriteUrl,
-      DATABASE_READONLY_URL: dbReadOnlyUrl,
       PUBLIC_WEBSITE_URL: websiteUrl,
       PUBLIC_API_URL: apiUrl,
       PUBLIC_AUTH_URL: authUiUrl,

@@ -13,6 +13,10 @@ export function Website({ stack }: StackContext) {
     path: 'packages/website',
     bind: [api, indexFileBucket],
     permissions: [api, indexFileBucket],
+    runtime: 'nodejs20.x',
+    nodejs: {
+      install: ['@sentry/cli']
+    },
     environment: {
       ...STATIC_ENV_VARS,
       PUBLIC_WEBSITE_URL: websiteUrl,
