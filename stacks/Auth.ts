@@ -1,4 +1,5 @@
 import { API, Constants, DatabaseScripts, Layers, STATIC_ENV_VARS } from '@stacks';
+import { Architecture } from 'aws-cdk-lib/aws-lambda';
 import {
   Auth as AuthConstruct,
   SvelteKitSite,
@@ -82,9 +83,14 @@ export function Auth({ stack }: StackContext) {
     path: 'packages/auth-ui',
     bind: [api],
     permissions: [api],
+    cdk: {
+      server: {
+        architecture: Architecture.X86_64
+      }
+    },
     runtime: 'nodejs20.x',
     nodejs: {
-      install: ['@sentry/cli']
+      install: ['@sentry/cli', '@sentry/cli-linux-x64']
     },
     environment: {
       ...STATIC_ENV_VARS,

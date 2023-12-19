@@ -1,4 +1,5 @@
 import { API, ChatAPI, Constants, DatabaseScripts, S3, STATIC_ENV_VARS } from '@stacks';
+import { Architecture } from 'aws-cdk-lib/aws-lambda';
 import { SvelteKitSite, dependsOn, use, type StackContext } from 'sst/constructs';
 
 export function Website({ stack }: StackContext) {
@@ -13,9 +14,14 @@ export function Website({ stack }: StackContext) {
     path: 'packages/website',
     bind: [api, indexFileBucket],
     permissions: [api, indexFileBucket],
+    cdk: {
+      server: {
+        architecture: Architecture.X86_64
+      }
+    },
     runtime: 'nodejs20.x',
     nodejs: {
-      install: ['@sentry/cli']
+      install: ['@sentry/cli', '@sentry/cli-linux-x64']
     },
     environment: {
       ...STATIC_ENV_VARS,
