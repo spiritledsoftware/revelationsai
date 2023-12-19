@@ -2,6 +2,7 @@
 	"name": "@revelationsai/auth-ui",
 	"version": "1.0.0",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"dev": "vite dev --open --port 8910",
 		"dev:sst": "sst bind 'vite dev --open --port 8910'",
@@ -47,10 +48,9 @@
 		"typescript": "^5.3.3",
 		"vite": "^5.0.10"
 	},
-	"type": "module",
 	"dependencies": {
 		"@revelationsai/core": "workspace:*",
-		"@sentry/sveltekit": "^7.88.0",
+		"@sentry/sveltekit": "7.84.0",
 		"@tanstack/svelte-query": "^5.14.1",
 		"ai": "^2.2.29",
 		"autosize": "^6.0.1",
