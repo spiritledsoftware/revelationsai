@@ -2,21 +2,20 @@ import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   OkResponse
-} from '@lib/api-responses';
-import { getDevotion } from '@services/devotion';
-import { getDevotionReactionCounts } from '@services/devotion/reaction';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { devotionReactionService, devotionService } from '../../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const devotion = await getDevotion(id);
+    const devotion = await devotionService.getDevotion(id);
     if (!devotion) {
       return ObjectNotFoundResponse(id);
     }
 
-    const devoReactionCounts = await getDevotionReactionCounts(id);
+    const devoReactionCounts = await devotionReactionService.getDevotionReactionCounts(id);
 
     return OkResponse(devoReactionCounts);
   } catch (err) {

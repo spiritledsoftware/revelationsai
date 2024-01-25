@@ -1,17 +1,19 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { aiResponseReactions } from '@core/schema';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { aiResponseReactions } from '@revelationsai/core/database/schema';
 import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { getAiResponse } from '@services/ai-response';
-import { getAiResponseReactions } from '@services/ai-response/reaction';
-import { validApiHandlerSession } from '@services/session';
-import { isObjectOwner } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import {
+  aiResponseReactionService,
+  aiResponseService,
+  sessionService,
+  userService
+} from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
@@ -22,21 +24,21 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const aiResponse = await getAiResponse(id);
+    const aiResponse = await aiResponseService.getAiResponse(id);
     if (!aiResponse) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be signed in.');
     }
 
-    if (!isObjectOwner(aiResponse, userWithRoles.id)) {
+    if (!userService.isObjectOwner(aiResponse, userWithRoles.id)) {
       return UnauthorizedResponse('You do not have permission to view these reactions.');
     }
 
-    const reactions = await getAiResponseReactions({
+    const reactions = await aiResponseReactionService.getAiResponseReactions({
       where: eq(aiResponseReactions.aiResponseId, aiResponse.id),
       limit,
       offset: (page - 1) * limit,

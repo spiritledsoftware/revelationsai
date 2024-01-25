@@ -1,9 +1,9 @@
-import { buildOrderBy, buildQuery } from '@core/database/helpers';
-import { devotions } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse } from '@lib/api-responses';
-import { getDevotions } from '@services/devotion';
+import { buildOrderBy, buildQuery } from '@revelationsai/core/database/helpers';
+import { devotions } from '@revelationsai/core/database/schema';
+import { InternalServerErrorResponse, OkResponse } from '@revelationsai/server/lib/api-responses';
 import { and, eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import { devotionService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -23,7 +23,7 @@ export const handler = ApiHandler(async (event) => {
   });
 
   try {
-    const devos = await getDevotions({
+    const devos = await devotionService.getDevotions({
       where: and(
         buildQuery(devotions, query),
         includeFailed ? undefined : eq(devotions.failed, false)

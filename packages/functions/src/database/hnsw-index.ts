@@ -1,19 +1,11 @@
-import databaseConfig from '@core/configs/database';
-import vectorDBConfig from '@core/configs/vector-db';
-import { getDocumentVectorStore, getPartialHnswIndexInfos } from '@services/vector-db';
 import { JobHandler } from 'sst/node/job';
 import 'web-streams-polyfill/dist/polyfill.es2018.js';
+import { vectorDatabaseService } from '../lib/services';
 
 declare module 'sst/node/job' {
   export interface JobTypes {
     hnswIndexJob: {
-      dbOptions: {
-        readWriteUrl: string;
-        readOnlyUrl: string;
-      };
       vectorDbOptions: {
-        readWriteUrl: string;
-        readOnlyUrl: string;
         recreateIndexes?: boolean;
       };
     };
@@ -22,18 +14,12 @@ declare module 'sst/node/job' {
 
 export const handler = JobHandler('hnswIndexJob', async (payload) => {
   console.log('Received HNSW index event: ', payload);
-  const { dbOptions, vectorDbOptions } = payload;
-
-  databaseConfig.readOnlyUrl = dbOptions.readOnlyUrl;
-  databaseConfig.readWriteUrl = dbOptions.readWriteUrl;
-
-  vectorDBConfig.readUrl = vectorDbOptions.readOnlyUrl;
-  vectorDBConfig.writeUrl = vectorDbOptions.readWriteUrl;
+  const { vectorDbOptions } = payload;
 
   const errors: unknown[] = [];
   try {
     console.log('Creating HNSW index');
-    const vectorDb = await getDocumentVectorStore();
+    const vectorDb = await vectorDatabaseService.getDocumentVectorStore();
     await vectorDb.ensureTableInDatabase();
     await vectorDb.createHnswIndex({ recreate: vectorDbOptions.recreateIndexes });
   } catch (e) {
@@ -42,12 +28,12 @@ export const handler = JobHandler('hnswIndexJob', async (payload) => {
   }
 
   console.log('Creating partial HNSW indexes');
-  for (const { name, filters } of getPartialHnswIndexInfos()) {
+  for (const { name, filters } of vectorDatabaseService.getPartialHnswIndexInfos()) {
     try {
       console.log(
         `Creating partial HNSW index on documents: ${name} with filters: ${JSON.stringify(filters)}`
       );
-      const filteredVectorDb = await getDocumentVectorStore({
+      const filteredVectorDb = await vectorDatabaseService.getDocumentVectorStore({
         filters
       });
       await filteredVectorDb.createPartialHnswIndex(name, {

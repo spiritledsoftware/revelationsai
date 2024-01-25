@@ -1,15 +1,13 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { userQueryCounts } from '@core/schema';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { userQueryCounts } from '@revelationsai/core/database/schema';
 import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
-import { getUser, isAdminSync } from '@services/user';
-import { getUserQueryCountsByUserId } from '@services/user/query-count';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService, userQueryCountService, userService } from '../../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
@@ -20,17 +18,17 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const user = await getUser(id);
+    const user = await userService.getUser(id);
     if (!user) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 
-    const queryCounts = await getUserQueryCountsByUserId(id, {
+    const queryCounts = await userQueryCountService.getUserQueryCountsByUserId(id, {
       limit,
       offset: (page - 1) * limit,
       orderBy: buildOrderBy(userQueryCounts, orderBy, order)

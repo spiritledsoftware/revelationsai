@@ -1,31 +1,28 @@
-import envConfig from '@core/configs/env';
-import type { AnthropicModelId } from '@core/langchain/types/bedrock-types';
-import type { NeonVectorStoreDocument } from '@core/langchain/vectorstores/neon';
-import type { Chat } from '@core/model/chat';
-import type { UserWithRoles } from '@core/model/user';
-import { aiResponsesToSourceDocuments, userMessages } from '@core/schema';
-import db from '@lib/database/database';
-import { aiRenameChat } from '@lib/util/chat';
 import middy from '@middy/core';
-import {
-  createAiResponse,
-  getAiResponse,
-  getAiResponsesByUserMessageId,
-  updateAiResponse
-} from '@services/ai-response/ai-response';
-import { createChat, getChat, updateChat } from '@services/chat';
-import { getRAIChatChain } from '@services/chat/langchain';
-import type { RAIChatMessage } from '@services/chat/message';
-import { validNonApiHandlerSession } from '@services/session';
-import { hasPlusSync, isAdminSync, isObjectOwner } from '@services/user';
-import { createUserMessage, getUserMessages } from '@services/user/message';
-import { decrementUserQueryCount, incrementUserQueryCount } from '@services/user/query-count';
+import envConfig from '@revelationsai/core/configs/env';
+import { aiResponsesToSourceDocuments, userMessages } from '@revelationsai/core/database/schema';
+import type { AnthropicModelId } from '@revelationsai/core/langchain/types/bedrock-types';
+import type { NeonVectorStoreDocument } from '@revelationsai/core/langchain/vectorstores/neon';
+import type { Chat } from '@revelationsai/core/model/chat';
+import type { UserWithRoles } from '@revelationsai/core/model/user';
+import type { RAIChatMessage } from '@revelationsai/server/services/chat/message';
 import { LangChainStream } from 'ai';
 import type { APIGatewayProxyEventV2, APIGatewayProxyStructuredResultV2 } from 'aws-lambda';
 import { and, eq, or } from 'drizzle-orm';
 import { CallbackManager } from 'langchain/callbacks';
 import { Readable } from 'stream';
 import { v4 as uuidV4 } from 'uuid';
+import { getRAIChatChain } from './lib/chat/langchain';
+import db from './lib/database';
+import {
+  aiResponseService,
+  chatService,
+  sessionService,
+  userMessageService,
+  userQueryCountService,
+  userService
+} from './lib/services';
+import { aiRenameChat } from './lib/util/chat';
 
 type StreamedAPIGatewayProxyStructuredResultV2 = Omit<APIGatewayProxyStructuredResultV2, 'body'> & {
   body: Readable;
@@ -81,8 +78,8 @@ function validateModelId(
   }
   if (
     providedModelId !== 'anthropic.claude-instant-v1' &&
-    !hasPlusSync(userWithRoles) &&
-    !isAdminSync(userWithRoles)
+    !userService.hasPlusSync(userWithRoles) &&
+    !userService.isAdminSync(userWithRoles)
   ) {
     return {
       statusCode: 403,
@@ -106,7 +103,8 @@ async function postResponseValidationLogic({
   aiResponseId,
   userId,
   response,
-  sourceDocuments
+  sourceDocuments,
+  searchQueries
 }: {
   modelId: AnthropicModelId;
   chat: Chat;
@@ -116,14 +114,16 @@ async function postResponseValidationLogic({
   lastMessage: RAIChatMessage;
   response: string;
   sourceDocuments: NeonVectorStoreDocument[];
+  searchQueries: string[];
 }): Promise<void> {
-  const aiResponse = await createAiResponse({
+  const aiResponse = await aiResponseService.createAiResponse({
     id: aiResponseId,
     chatId: chat.id,
     userMessageId: userMessageId,
     userId,
     text: response,
-    modelId
+    modelId,
+    searchQueries
   });
 
   await Promise.all([
@@ -186,7 +186,7 @@ async function lambdaHandler(
 
     console.time('Validating session token');
     const { isValid, userWithRoles, remainingQueries, maxQueries } =
-      await validNonApiHandlerSession(event);
+      await sessionService.validNonApiHandlerSession(event.headers.authorization?.split(' ')[1]);
     if (!isValid) {
       console.log('Invalid session token');
       return {
@@ -213,7 +213,9 @@ async function lambdaHandler(
         ])
       };
     }
-    const incrementQueryCountPromise = incrementUserQueryCount(userWithRoles.id);
+    const incrementQueryCountPromise = userQueryCountService.incrementUserQueryCount(
+      userWithRoles.id
+    );
     pendingPromises.push(incrementQueryCountPromise);
 
     if (providedModelId) {
@@ -223,21 +225,22 @@ async function lambdaHandler(
       }
     }
     const modelId =
-      (hasPlusSync(userWithRoles) || isAdminSync(userWithRoles)) && !envConfig.isLocal
+      (userService.hasPlusSync(userWithRoles) || userService.isAdminSync(userWithRoles)) &&
+      !envConfig.isLocal
         ? 'anthropic.claude-v2:1'
         : 'anthropic.claude-instant-v1';
 
     console.time('Validating chat');
     const chat = chatId
-      ? await getChat(chatId).then(async (foundChat) => {
-          if (!foundChat || !isObjectOwner(foundChat, userWithRoles.id)) {
-            return await createChat({
+      ? await chatService.getChat(chatId).then(async (foundChat) => {
+          if (!foundChat || !userService.isObjectOwner(foundChat, userWithRoles.id)) {
+            return await chatService.createChat({
               userId: userWithRoles.id
             });
           }
           return foundChat;
         })
-      : await createChat({
+      : await chatService.createChat({
           userId: userWithRoles.id
         });
 
@@ -247,43 +250,47 @@ async function lambdaHandler(
       pendingPromises.push(aiRenameChat(chat, messages));
     } else {
       pendingPromises.push(
-        updateChat(chat.id, {
+        chatService.updateChat(chat.id, {
           updatedAt: new Date()
         })
       );
     }
 
     console.time('Validating user message');
-    const userMessage = await getUserMessages({
-      where: and(
-        eq(userMessages.chatId, chat.id),
-        lastMessage.uuid
-          ? eq(userMessages.id, lastMessage.uuid)
-          : or(eq(userMessages.text, lastMessage.content), eq(userMessages.aiId, lastMessage.id))
-      )
-    }).then(async (userMessages) => {
-      const userMessage = userMessages.at(0);
-      if (userMessage) {
-        pendingPromises.push(
-          getAiResponsesByUserMessageId(userMessage.id).then(async (aiResponses) => {
-            await Promise.all(
-              aiResponses.map(async (aiResponse) => {
-                await updateAiResponse(aiResponse.id, {
-                  regenerated: true
-                });
+    const userMessage = await userMessageService
+      .getUserMessages({
+        where: and(
+          eq(userMessages.chatId, chat.id),
+          lastMessage.uuid
+            ? eq(userMessages.id, lastMessage.uuid)
+            : or(eq(userMessages.text, lastMessage.content), eq(userMessages.aiId, lastMessage.id))
+        )
+      })
+      .then(async (userMessages) => {
+        const userMessage = userMessages.at(0);
+        if (userMessage) {
+          pendingPromises.push(
+            aiResponseService
+              .getAiResponsesByUserMessageId(userMessage.id)
+              .then(async (aiResponses) => {
+                await Promise.all(
+                  aiResponses.map(async (aiResponse) => {
+                    await aiResponseService.updateAiResponse(aiResponse.id, {
+                      regenerated: true
+                    });
+                  })
+                );
               })
-            );
-          })
-        );
-        return userMessage;
-      }
-      return await createUserMessage({
-        aiId: lastMessage.id,
-        text: lastMessage.content,
-        chatId: chat.id,
-        userId: userWithRoles.id
+          );
+          return userMessage;
+        }
+        return await userMessageService.createUserMessage({
+          aiId: lastMessage.id,
+          text: lastMessage.content,
+          chatId: chat.id,
+          userId: userWithRoles.id
+        });
       });
-    });
     console.timeEnd('Validating user message');
 
     const aiResponseId = uuidV4();
@@ -300,10 +307,8 @@ async function lambdaHandler(
       })
       .then(async (result) => {
         console.log(`LangChain result: ${JSON.stringify(result)}`);
-        const sourceDocuments =
-          result.sourceDocuments?.filter((d1, i, arr) => {
-            return arr.findIndex((d2) => d2.id === d1.id) === i;
-          }) ?? [];
+        const sourceDocuments = result.sourceDocuments ?? [];
+        const searchQueries = result.searchQueries ?? [];
         await postResponseValidationLogic({
           modelId,
           chat,
@@ -312,7 +317,8 @@ async function lambdaHandler(
           userId: userWithRoles.id,
           lastMessage,
           response: result.text,
-          sourceDocuments
+          sourceDocuments,
+          searchQueries
         });
         return result;
       })
@@ -320,11 +326,11 @@ async function lambdaHandler(
         console.error(`Error: ${err.stack}`);
         await Promise.all([
           incrementQueryCountPromise.then(() => {
-            decrementUserQueryCount(userWithRoles.id);
+            userQueryCountService.decrementUserQueryCount(userWithRoles.id);
           }),
-          getAiResponse(aiResponseId).then(async (aiResponse) => {
+          aiResponseService.getAiResponse(aiResponseId).then(async (aiResponse) => {
             if (aiResponse) {
-              await updateAiResponse(aiResponse.id, {
+              await aiResponseService.updateAiResponse(aiResponse.id, {
                 failed: true
               });
             }

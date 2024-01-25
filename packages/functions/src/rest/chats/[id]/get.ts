@@ -3,23 +3,21 @@ import {
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { getChat } from '@services/chat/chat';
-import { validApiHandlerSession } from '@services/session';
-import { isObjectOwner } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { chatService, sessionService, userService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const chat = await getChat(id);
+    const chat = await chatService.getChat(id);
     if (!chat) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isObjectOwner(chat, userWithRoles.id)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isObjectOwner(chat, userWithRoles.id)) {
       return UnauthorizedResponse('You are not authorized to view this chat');
     }
 

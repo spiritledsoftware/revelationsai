@@ -1,10 +1,13 @@
-import { buildOrderBy, buildQuery } from '@core/database/helpers';
-import { users } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
-import { getUsers } from '@services/user';
+import { buildOrderBy, buildQuery } from '@revelationsai/core/database/helpers';
+import { users } from '@revelationsai/core/database/schema';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { and } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService, userService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -23,12 +26,12 @@ export const handler = ApiHandler(async (event) => {
   });
 
   try {
-    const { isValid } = await validApiHandlerSession();
+    const { isValid } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be logged in');
     }
 
-    const foundUsers = await getUsers({
+    const foundUsers = await userService.getUsers({
       where: and(buildQuery(users, query)),
       limit,
       offset: (page - 1) * limit,

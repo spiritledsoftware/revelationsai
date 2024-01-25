@@ -1,10 +1,13 @@
-import { buildOrderBy, buildQuery } from '@core/database/helpers';
-import { chats } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { getChats } from '@services/chat';
-import { validApiHandlerSession } from '@services/session';
+import { buildOrderBy, buildQuery } from '@revelationsai/core/database/helpers';
+import { chats } from '@revelationsai/core/database/schema';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { and, eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import { chatService, sessionService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -23,12 +26,12 @@ export const handler = ApiHandler(async (event) => {
   });
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be logged in');
     }
 
-    const foundChats = await getChats({
+    const foundChats = await chatService.getChats({
       where: and(buildQuery(chats, query), eq(chats.userId, userWithRoles.id)),
       limit,
       offset: (page - 1) * limit,

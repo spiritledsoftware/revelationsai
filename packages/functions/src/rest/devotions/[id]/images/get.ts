@@ -1,14 +1,13 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { devotionImages } from '@core/schema';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { devotionImages } from '@revelationsai/core/database/schema';
 import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   OkResponse
-} from '@lib/api-responses';
-import { getDevotion } from '@services/devotion';
-import { getDevotionImages } from '@services/devotion/image';
+} from '@revelationsai/server/lib/api-responses';
 import { eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import { devotionImageService, devotionService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
@@ -19,12 +18,12 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const devotion = await getDevotion(id);
+    const devotion = await devotionService.getDevotion(id);
     if (!devotion) {
       return ObjectNotFoundResponse(id);
     }
 
-    const devoImages = await getDevotionImages({
+    const devoImages = await devotionImageService.getDevotionImages({
       where: eq(devotionImages.devotionId, devotion.id),
       limit,
       offset: (page - 1) * limit,

@@ -4,16 +4,9 @@ import {
   InternalServerErrorResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import {
-  addRoleToUser,
-  doesUserHaveRole,
-  getRoleByName,
-  getRolesByUserId,
-  removeRoleFromUser
-} from '@services/role';
-import { getUser } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { roleService, userService } from '../lib/services';
 
 // https://www.revenuecat.com/docs/event-types-and-fields
 type RootEventObject = {
@@ -94,44 +87,44 @@ export const handler = ApiHandler(async (event) => {
     const eventObj = body.event;
     if (eventObj.type === 'INITIAL_PURCHASE' || eventObj.type === 'RENEWAL') {
       console.log('Purchase event: ', eventObj);
-      const user = await getUser(eventObj.app_user_id);
+      const user = await userService.getUser(eventObj.app_user_id);
       if (!user) {
         return BadRequestResponse('User not found');
       }
 
       // Remove all existing RC roles
-      await getRolesByUserId(user.id).then(async (roles) => {
+      await roleService.getRolesByUserId(user.id).then(async (roles) => {
         for (const role of roles) {
           if (role.name.startsWith('rc:')) {
-            await removeRoleFromUser(role.name, user.id);
+            await roleService.removeRoleFromUser(role.name, user.id);
           }
         }
       });
 
       // Add new RC roles
       for (const entitlementId of eventObj.entitlement_ids) {
-        const role = await getRoleByName(`rc:${entitlementId}`);
+        const role = await roleService.getRoleByName(`rc:${entitlementId}`);
         if (!role) {
           return BadRequestResponse('Role not found');
         }
-        await doesUserHaveRole(role.name, user.id).then(async (hasRole) => {
+        await roleService.doesUserHaveRole(role.name, user.id).then(async (hasRole) => {
           if (!hasRole) {
-            await addRoleToUser(role.name, user.id);
+            await roleService.addRoleToUser(role.name, user.id);
           }
         });
       }
     } else if (eventObj.type === 'EXPIRATION') {
       console.log('Expiration event: ', eventObj);
-      const user = await getUser(eventObj.app_user_id);
+      const user = await userService.getUser(eventObj.app_user_id);
       if (!user) {
         return BadRequestResponse('User not found');
       }
 
       // Remove all RC roles
-      await getRolesByUserId(user.id).then(async (roles) => {
+      await roleService.getRolesByUserId(user.id).then(async (roles) => {
         for (const role of roles) {
           if (role.name.startsWith('rc:')) {
-            await removeRoleFromUser(role.name, user.id);
+            await roleService.removeRoleFromUser(role.name, user.id);
           }
         }
       });

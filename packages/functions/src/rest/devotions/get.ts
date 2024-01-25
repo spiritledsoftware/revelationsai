@@ -1,8 +1,8 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { devotions } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse } from '@lib/api-responses';
-import { getDevotions } from '@services/devotion';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { devotions } from '@revelationsai/core/database/schema';
+import { InternalServerErrorResponse, OkResponse } from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { devotionService } from '../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -12,7 +12,7 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const devos = await getDevotions({
+    const devos = await devotionService.getDevotions({
       orderBy: buildOrderBy(devotions, orderBy, order),
       offset: (page - 1) * limit,
       limit

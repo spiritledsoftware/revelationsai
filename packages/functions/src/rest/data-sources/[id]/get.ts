@@ -2,15 +2,15 @@ import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   OkResponse
-} from '@lib/api-responses';
-import { getDataSource } from '@services/data-source';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { dataSourceService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const dataSource = await getDataSource(id);
+    const dataSource = await dataSourceService.getDataSource(id);
     if (!dataSource) {
       return ObjectNotFoundResponse(id);
     }

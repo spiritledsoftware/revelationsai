@@ -4,11 +4,10 @@ import {
   InternalServerErrorResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { indexWebCrawl } from '@services/scraper/web-crawl';
-import { validApiHandlerSession } from '@services/session';
-import { isAdmin } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { indexWebCrawl } from '../lib/scraper/web-crawl';
+import { sessionService, userService } from '../lib/services';
 
 type RequestBody = {
   dataSourceId: string;
@@ -21,12 +20,12 @@ type RequestBody = {
 export const handler = ApiHandler(async (event) => {
   console.log('Received web crawl event:', event);
 
-  const { isValid, userWithRoles } = await validApiHandlerSession();
+  const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
   if (!isValid) {
     return UnauthorizedResponse('You must be logged in to perform this action');
   }
 
-  if (!(await isAdmin(userWithRoles.id))) {
+  if (!userService.isAdminSync(userWithRoles)) {
     return ForbiddenResponse('You must be an admin to perform this action');
   }
 

@@ -3,23 +3,21 @@ import {
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { syncDataSource } from '@lib/util/data-source';
-import { getDataSource } from '@services/data-source';
-import { validApiHandlerSession } from '@services/session';
-import { isAdmin } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { dataSourceService, sessionService, userService } from '../../../../../lib/services';
+import { syncDataSource } from '../../../../../lib/util/data-source';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !(await isAdmin(userWithRoles.id))) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !(await userService.isAdminSync(userWithRoles))) {
       return UnauthorizedResponse();
     }
 
-    const dataSource = await getDataSource(id);
+    const dataSource = await dataSourceService.getDataSource(id);
     if (!dataSource) {
       return ObjectNotFoundResponse(id);
     }

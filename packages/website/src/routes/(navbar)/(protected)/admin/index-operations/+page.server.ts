@@ -1,11 +1,10 @@
-import { getIndexOperations } from '$lib/services/admin/data-source/index-op';
+import { indexOperationService } from '$lib/server/services';
 import type { PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async () => {
 	const limit = 50;
-	const { indexOperations } = await getIndexOperations({
-		limit,
-		session: locals.session!
+	const indexOperations = await indexOperationService.getIndexOperations({
+		limit
 	});
 	return {
 		indexOperations,

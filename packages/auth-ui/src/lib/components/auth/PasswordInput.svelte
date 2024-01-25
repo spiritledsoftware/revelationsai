@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cn } from '$lib/utils/class-names';
+	import { cn } from '@revelationsai/client/utils/class-names';
 	import Icon from '@iconify/svelte';
 
 	let className: string | undefined = undefined;

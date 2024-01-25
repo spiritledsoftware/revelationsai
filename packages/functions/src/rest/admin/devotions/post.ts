@@ -2,11 +2,10 @@ import {
   CreatedResponse,
   InternalServerErrorResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { generateDevotion } from '@lib/util/devotion';
-import { validApiHandlerSession } from '@services/session';
-import { isAdminSync } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService, userService } from '../../../lib/services';
+import { generateDevotion } from '../../../lib/util/devotion';
 
 export const handler = ApiHandler(async (event) => {
   console.log('Received devotion create event:', event);
@@ -14,8 +13,8 @@ export const handler = ApiHandler(async (event) => {
   const { topic, bibleVerse } = JSON.parse(event.body ?? '{}');
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 

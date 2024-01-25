@@ -1,7 +1,11 @@
-import { BadRequestResponse, InternalServerErrorResponse, OkResponse } from '@lib/api-responses';
-import { getEmbeddingsModel } from '@services/llm';
-import { getDocumentVectorStore } from '@services/vector-db';
+import {
+  BadRequestResponse,
+  InternalServerErrorResponse,
+  OkResponse
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { getEmbeddingsModel } from '../../lib/llm';
+import { vectorDatabaseService } from '../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   console.log('Received vector similarity search request event', event);
@@ -17,7 +21,7 @@ export const handler = ApiHandler(async (event) => {
 
   try {
     const embeddings = getEmbeddingsModel();
-    const vectorStore = await getDocumentVectorStore();
+    const vectorStore = await vectorDatabaseService.getDocumentVectorStore();
     const results = await vectorStore.similaritySearchVectorWithScore(
       await embeddings.embedQuery(query),
       limit,

@@ -1,15 +1,23 @@
-import { getDevotion, getDevotionSourceDocuments } from '$lib/services/devotion';
-import { getDevotionImages } from '$lib/services/devotion/image';
-import { getDevotionReactionCounts } from '$lib/services/devotion/reaction';
+import {
+	devotionImageService,
+	devotionReactionService,
+	devotionService,
+	sourceDocumentService
+} from '$lib/server/services';
+import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params }) => {
-	const [devotion, sourceDocs, { images }, reactionCounts] = await Promise.all([
-		getDevotion(params.id),
-		getDevotionSourceDocuments(params.id),
-		getDevotionImages(params.id),
-		getDevotionReactionCounts(params.id)
+	const [devotion, sourceDocs, images, reactionCounts] = await Promise.all([
+		devotionService.getDevotion(params.id),
+		sourceDocumentService.getDevotionSourceDocuments(params.id),
+		devotionImageService.getDevotionImagesByDevotionId(params.id),
+		devotionReactionService.getDevotionReactionCounts(params.id)
 	]);
+
+	if (!devotion) {
+		throw redirect(302, '/devotions');
+	}
 
 	return {
 		devotion,

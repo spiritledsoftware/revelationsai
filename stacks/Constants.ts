@@ -39,7 +39,8 @@ export function Constants({ stack, app }: StackContext) {
       esbuild: {
         external: ['argon2', '@sparticuz/chromium', 'web-streams-polyfill'],
         minify: stack.stage === 'prod',
-        treeShaking: stack.stage === 'prod'
+        treeShaking: stack.stage === 'prod',
+        target: 'esnext'
       }
     },
     architecture: 'arm_64',

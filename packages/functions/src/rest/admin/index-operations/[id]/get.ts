@@ -1,19 +1,21 @@
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { getIndexOperationOrThrow } from '@services/data-source/index-op';
-import { validApiHandlerSession } from '@services/session';
-import { isAdminSync } from '@services/user';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { indexOperationService, sessionService, userService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 
-    const indexOp = await getIndexOperationOrThrow(id);
+    const indexOp = await indexOperationService.getIndexOperationOrThrow(id);
 
     return OkResponse(indexOp);
   } catch (error) {

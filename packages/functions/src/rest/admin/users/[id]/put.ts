@@ -1,30 +1,29 @@
-import type { UpdateUserData } from '@core/model/user';
+import type { UpdateUserData } from '@revelationsai/core/model/user';
 import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
-import { getUser, isAdminSync, updateUser } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService, userService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
   const data: UpdateUserData = JSON.parse(event.body ?? '{}');
 
   try {
-    let user = await getUser(id);
+    let user = await userService.getUser(id);
     if (!user) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 
-    user = await updateUser(user.id, data);
+    user = await userService.updateUser(user.id, data);
     return OkResponse(user);
   } catch (error) {
     console.error(`Error updating user '${id}':`, error);

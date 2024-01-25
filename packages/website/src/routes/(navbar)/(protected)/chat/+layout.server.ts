@@ -1,12 +1,13 @@
-import { getChats } from '$lib/services/chat';
+import { chatService } from '$lib/server/services';
+import { chats as chatsTable } from '@revelationsai/core/database/schema';
+import { desc, eq } from 'drizzle-orm';
 import type { LayoutServerLoad } from './$types';
 
-export const load: LayoutServerLoad = async ({ locals: { session } }) => {
-	const { chats } = await getChats({
-		session: session!,
+export const load: LayoutServerLoad = async ({ locals }) => {
+	const chats = await chatService.getChats({
 		limit: 7,
-		orderBy: 'updatedAt',
-		order: 'desc'
+		orderBy: desc(chatsTable.updatedAt),
+		where: eq(chatsTable.userId, locals.user.id)
 	});
 
 	return {

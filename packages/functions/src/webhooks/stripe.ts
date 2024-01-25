@@ -1,8 +1,12 @@
-import { BadRequestResponse, InternalServerErrorResponse, OkResponse } from '@lib/api-responses';
-import { getUser, getUserByStripeCustomerId, updateUser } from '@services/user';
+import stripeConfig from '@revelationsai/core/configs/stripe';
+import {
+  BadRequestResponse,
+  InternalServerErrorResponse,
+  OkResponse
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
 import Stripe from 'stripe';
-import stripeConfig from '../configs/stripe';
+import { userService } from '../lib/services';
 
 const stripe = new Stripe(stripeConfig.apiKey, {
   apiVersion: '2023-10-16'
@@ -38,7 +42,7 @@ export const handler = ApiHandler(async (event) => {
           return BadRequestResponse('Missing client reference ID');
         }
 
-        const user = await getUser(clientReferenceId);
+        const user = await userService.getUser(clientReferenceId);
         if (!user) {
           console.error(`User not found for client reference ID: ${clientReferenceId}`);
           return InternalServerErrorResponse(
@@ -52,7 +56,7 @@ export const handler = ApiHandler(async (event) => {
           typeof stripeCustomerId === 'string' &&
           user.stripeCustomerId !== stripeCustomerId
         ) {
-          await updateUser(user.id, { stripeCustomerId });
+          await userService.updateUser(user.id, { stripeCustomerId });
         }
 
         return OkResponse();
@@ -61,7 +65,7 @@ export const handler = ApiHandler(async (event) => {
         const subscription = stripeEvent.data.object;
         console.log('Subscription created: ', subscription);
 
-        const user = await getUserByStripeCustomerId(subscription.customer.toString());
+        const user = await userService.getUserByStripeCustomerId(subscription.customer.toString());
         if (!user) {
           console.error(`User not found for Stripe customer ID: ${subscription.customer}`);
           return InternalServerErrorResponse(

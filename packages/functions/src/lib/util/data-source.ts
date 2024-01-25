@@ -1,18 +1,16 @@
-import type { DataSource } from '@core/model/data-source';
-import { indexOperations } from '@core/schema';
-import { getDataSourceOrThrow, updateDataSource } from '@services/data-source';
-import { getIndexOperations } from '@services/data-source/index-op';
-import { indexRemoteFile } from '@services/scraper/file';
-import { indexWebCrawl } from '@services/scraper/web-crawl';
-import { indexWebPage } from '@services/scraper/webpage';
-import { indexYoutubeVideo } from '@services/scraper/youtube';
-import { getDocumentVectorStore } from '@services/vector-db';
+import { indexOperations } from '@revelationsai/core/database/schema';
+import type { DataSource } from '@revelationsai/core/model/data-source';
 import { and, eq } from 'drizzle-orm';
+import { indexRemoteFile } from '../scraper/file';
+import { indexWebCrawl } from '../scraper/web-crawl';
+import { indexWebPage } from '../scraper/webpage';
+import { indexYoutubeVideo } from '../scraper/youtube';
+import { dataSourceService, indexOperationService, vectorDatabaseService } from '../services';
 
 export async function syncDataSource(id: string, manual: boolean = false): Promise<DataSource> {
-  let dataSource = await getDataSourceOrThrow(id);
+  let dataSource = await dataSourceService.getDataSourceOrThrow(id);
 
-  const runningIndexOps = await getIndexOperations({
+  const runningIndexOps = await indexOperationService.getIndexOperations({
     where: and(
       eq(indexOperations.dataSourceId, dataSource.id),
       eq(indexOperations.status, 'RUNNING')
@@ -23,7 +21,7 @@ export async function syncDataSource(id: string, manual: boolean = false): Promi
     throw new Error(`Cannot sync data source ${dataSource.id} because it is already being indexed`);
   }
 
-  dataSource = await updateDataSource(dataSource.id, {
+  dataSource = await dataSourceService.updateDataSource(dataSource.id, {
     numberOfDocuments: 0
   });
 
@@ -69,13 +67,13 @@ export async function syncDataSource(id: string, manual: boolean = false): Promi
       throw new Error(`Unsupported data source type ${dataSource.type}`);
   }
 
-  dataSource = await updateDataSource(dataSource.id, {
+  dataSource = await dataSourceService.updateDataSource(dataSource.id, {
     lastManualSync: manual ? syncDate : undefined,
     lastAutomaticSync: !manual ? syncDate : undefined
   });
 
   // Delete old vectors
-  const vectorDb = await getDocumentVectorStore();
+  const vectorDb = await vectorDatabaseService.getDocumentVectorStore();
   await vectorDb.transaction(async (client) => {
     return await client.query(
       `DELETE FROM ${vectorDb.tableName} 

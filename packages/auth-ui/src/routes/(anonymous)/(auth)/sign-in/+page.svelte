@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
@@ -50,7 +51,7 @@
 		isMobile = true;
 	}
 
-	$: if (form?.success) {
+	$: if (form?.success && browser) {
 		goto(form.success.redirect);
 	}
 

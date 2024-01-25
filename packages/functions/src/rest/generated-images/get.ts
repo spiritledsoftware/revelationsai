@@ -1,10 +1,13 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { userGeneratedImages } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { getUserGeneratedImages } from '@services/generated-image/generated-image';
-import { validApiHandlerSession } from '@services/session';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { userGeneratedImages } from '@revelationsai/core/database/schema';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { and, eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService, userGeneratedImageService } from '../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -15,12 +18,12 @@ export const handler = ApiHandler(async (event) => {
   const includeFailed = searchParams.includeFailed === 'true';
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You are not logged in.');
     }
 
-    const images = await getUserGeneratedImages({
+    const images = await userGeneratedImageService.getUserGeneratedImages({
       where: and(
         eq(userGeneratedImages.userId, userWithRoles.id),
         includeFailed ? undefined : eq(userGeneratedImages.failed, false)

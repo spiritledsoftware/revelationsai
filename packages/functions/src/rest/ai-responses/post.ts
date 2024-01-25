@@ -2,19 +2,18 @@ import {
   CreatedResponse,
   InternalServerErrorResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { createAiResponse } from '@services/ai-response/ai-response';
-import { validApiHandlerSession } from '@services/session';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { aiResponseService, sessionService } from '../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const data = JSON.parse(event.body ?? '{}');
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be logged in');
     }
-    const aiResponse = await createAiResponse({
+    const aiResponse = await aiResponseService.createAiResponse({
       ...data,
       userId: userWithRoles.id
     });

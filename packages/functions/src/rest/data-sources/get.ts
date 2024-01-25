@@ -1,8 +1,8 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { dataSources as dataSourcesTable } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse } from '@lib/api-responses';
-import { getDataSources } from '@services/data-source';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { dataSources as dataSourcesTable } from '@revelationsai/core/database/schema';
+import { InternalServerErrorResponse, OkResponse } from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { dataSourceService } from '../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -12,7 +12,7 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const dataSources = await getDataSources({
+    const dataSources = await dataSourceService.getDataSources({
       offset: (page - 1) * limit,
       limit,
       orderBy: buildOrderBy(dataSourcesTable, orderBy, order)

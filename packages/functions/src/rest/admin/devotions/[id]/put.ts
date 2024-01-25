@@ -1,31 +1,29 @@
-import type { Devotion } from '@core/model/devotion';
+import type { Devotion } from '@revelationsai/core/model/devotion';
 import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { getDevotion, updateDevotion } from '@services/devotion';
-import { validApiHandlerSession } from '@services/session';
-import { isAdminSync } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { devotionService, sessionService, userService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
   const data = JSON.parse(event.body ?? '{}');
 
   try {
-    let devo: Devotion | undefined = await getDevotion(id);
+    let devo: Devotion | undefined = await devotionService.getDevotion(id);
     if (!devo) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 
-    devo = await updateDevotion(devo!.id, data);
+    devo = await devotionService.updateDevotion(devo!.id, data);
 
     return OkResponse(devo);
   } catch (error) {

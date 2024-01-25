@@ -3,27 +3,25 @@ import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { deleteAiResponse, getAiResponse } from '@services/ai-response/ai-response';
-import { validApiHandlerSession } from '@services/session';
-import { isObjectOwner } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { aiResponseService, sessionService, userService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const aiResponse = await getAiResponse(id);
+    const aiResponse = await aiResponseService.getAiResponse(id);
     if (!aiResponse) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isObjectOwner(aiResponse, userWithRoles.id)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isObjectOwner(aiResponse, userWithRoles.id)) {
       return UnauthorizedResponse('You are not authorized to delete this response');
     }
 
-    await deleteAiResponse(aiResponse.id);
+    await aiResponseService.deleteAiResponse(aiResponse.id);
     return DeletedResponse(aiResponse.id);
   } catch (error) {
     console.error(`Error deleting ai response '${id}':`, error);

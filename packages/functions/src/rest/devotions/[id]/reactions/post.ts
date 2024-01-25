@@ -1,4 +1,4 @@
-import { devotionReactions } from '@core/schema';
+import { devotionReactions } from '@revelationsai/core/database/schema';
 import {
   BadRequestResponse,
   CreatedResponse,
@@ -6,16 +6,10 @@ import {
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { getDevotion } from '@services/devotion';
-import {
-  createDevotionReaction,
-  getDevotionReactions,
-  updateDevotionReaction
-} from '@services/devotion/reaction';
-import { validApiHandlerSession } from '@services/session';
+} from '@revelationsai/server/lib/api-responses';
 import { and, eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import { devotionReactionService, devotionService, sessionService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
@@ -35,18 +29,18 @@ export const handler = ApiHandler(async (event) => {
   }
 
   try {
-    const devotion = await getDevotion(id);
+    const devotion = await devotionService.getDevotion(id);
     if (!devotion) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be signed in.');
     }
 
     let devoReaction = (
-      await getDevotionReactions({
+      await devotionReactionService.getDevotionReactions({
         where: and(
           eq(devotionReactions.devotionId, devotion.id),
           eq(devotionReactions.userId, userWithRoles.id)
@@ -60,7 +54,7 @@ export const handler = ApiHandler(async (event) => {
         return BadRequestResponse('You have already reacted with this reaction.');
       } else {
         devoReaction.reaction = reaction;
-        devoReaction = await updateDevotionReaction(devoReaction.id, {
+        devoReaction = await devotionReactionService.updateDevotionReaction(devoReaction.id, {
           reaction,
           comment
         });
@@ -68,7 +62,7 @@ export const handler = ApiHandler(async (event) => {
       }
     }
 
-    devoReaction = await createDevotionReaction({
+    devoReaction = await devotionReactionService.createDevotionReaction({
       devotionId: devotion.id,
       userId: userWithRoles.id,
       reaction,

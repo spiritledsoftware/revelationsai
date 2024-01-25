@@ -3,26 +3,25 @@ import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
-import { deleteUser, getUser, isAdminSync } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService, userService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const user = await getUser(id);
+    const user = await userService.getUser(id);
     if (!user) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 
-    await deleteUser(user.id);
+    await userService.deleteUser(user.id);
     return DeletedResponse(user.id);
   } catch (error) {
     console.error(`Error deleting user '${id}':`, error);

@@ -1,34 +1,23 @@
-import authConfig from '@core/configs/auth';
-import databaseConfig from '@core/configs/database';
-import vectorDBConfig from '@core/configs/vector-db';
-import type { User } from '@core/model/user';
-import {
-  addRoleToUser,
-  createRole,
-  deleteRole,
-  deleteStripeRoles,
-  getRcRoles,
-  getRoleByName,
-  updateRole
-} from '@services/role';
-import { createUser, getUserByEmail, isAdmin } from '@services/user';
-import { createUserPassword, updateUserPasswordByUserId } from '@services/user/password';
+import authConfig from '@revelationsai/core/configs/auth';
+import revenueCatConfig from '@revelationsai/core/configs/revenue-cat';
+import type { User } from '@revelationsai/core/model/user';
 import argon from 'argon2';
 import type { Handler } from 'aws-lambda';
 import { randomBytes } from 'crypto';
 import { Job } from 'sst/node/job';
-import revenueCatConfig from '../configs/revenue-cat';
+import { roleService, userPasswordService, userService } from '../lib/services';
+import { deleteStripeRoles, getRcRoles } from '../lib/util/role';
 
 async function createInitialAdminUser() {
   console.log('Creating initial admin user');
-  let adminUser: User | undefined = await getUserByEmail(authConfig.adminUser.email);
+  let adminUser: User | undefined = await userService.getUserByEmail(authConfig.adminUser.email);
   if (!adminUser) {
-    adminUser = await createUser({
+    adminUser = await userService.createUser({
       email: authConfig.adminUser.email
     });
 
     const salt = randomBytes(16).toString('hex');
-    await createUserPassword({
+    await userPasswordService.createUserPassword({
       userId: adminUser.id,
       passwordHash: await argon.hash(`${authConfig.adminUser.password}${salt}`),
       salt: Buffer.from(salt, 'hex').toString('base64')
@@ -38,16 +27,16 @@ async function createInitialAdminUser() {
   } else {
     console.log('Admin user already existed, updating password.');
     const salt = randomBytes(16).toString('hex');
-    await updateUserPasswordByUserId(adminUser.id, {
+    await userPasswordService.updateUserPasswordByUserId(adminUser.id, {
       passwordHash: await argon.hash(`${authConfig.adminUser.password}${salt}`),
       salt: Buffer.from(salt, 'hex').toString('base64')
     });
   }
 
   console.log('Adding admin role to admin user');
-  await isAdmin(adminUser.id).then(async (isAdmin) => {
+  await userService.isAdmin(adminUser.id).then(async (isAdmin) => {
     if (!isAdmin) {
-      await addRoleToUser('admin', adminUser!.id);
+      await roleService.addRoleToUser('admin', adminUser!.id);
       console.log('Admin role added to admin user');
     } else {
       console.log('Admin role already added to admin user');
@@ -60,42 +49,42 @@ async function createInitialRoles() {
   console.log('Creating initial roles');
 
   console.log('Creating admin role');
-  let adminRole = await getRoleByName('admin');
+  let adminRole = await roleService.getRoleByName('admin');
   if (!adminRole) {
-    adminRole = await createRole({
+    adminRole = await roleService.createRole({
       name: 'admin'
     });
     console.log('Admin role created');
   } else {
     console.log(`Admin role already exists, updating permissions. ${JSON.stringify(adminRole)}`);
-    adminRole = await updateRole(adminRole.id, {
+    adminRole = await roleService.updateRole(adminRole.id, {
       permissions: [`query:${Number.MAX_SAFE_INTEGER}`, `image:${Number.MAX_SAFE_INTEGER}`]
     });
   }
 
   console.log('Creating moderator role');
-  let moderatorRole = await getRoleByName('moderator');
+  let moderatorRole = await roleService.getRoleByName('moderator');
   if (!moderatorRole) {
-    moderatorRole = await createRole({
+    moderatorRole = await roleService.createRole({
       name: 'moderator'
     });
     console.log('Moderator role created');
   } else {
-    moderatorRole = await updateRole(moderatorRole.id, {
+    moderatorRole = await roleService.updateRole(moderatorRole.id, {
       permissions: [`query:${Number.MAX_SAFE_INTEGER}`, `image:${Number.MAX_SAFE_INTEGER}`]
     });
     console.log('Moderator role already exists');
   }
 
   console.log('Creating default user role');
-  let userRole = await getRoleByName('user');
+  let userRole = await roleService.getRoleByName('user');
   if (!userRole) {
-    userRole = await createRole({
+    userRole = await roleService.createRole({
       name: 'user'
     });
     console.log('Default user role created');
   } else {
-    userRole = await updateRole(userRole.id, {
+    userRole = await roleService.updateRole(userRole.id, {
       permissions: ['query:5', 'image:1']
     });
     console.log('Default user role already exists');
@@ -151,17 +140,17 @@ async function createRcEntitlementRoles() {
 
   const entitlements: RCEntitlementsRootObject = await response.json();
   for (const entitlement of entitlements.items) {
-    let role = await getRoleByName(`rc:${entitlement.lookup_key}`);
+    let role = await roleService.getRoleByName(`rc:${entitlement.lookup_key}`);
     const { queries, images } = getQueryCountFromEntitlementLookupKey(entitlement.lookup_key);
     if (!role) {
-      role = await createRole({
+      role = await roleService.createRole({
         name: `rc:${entitlement.lookup_key}`,
         permissions: [`query:${queries}`, `image:${images}`]
       });
       console.log(`Role 'rc:${entitlement.lookup_key}' created`);
     } else {
       console.log(`Role 'rc:${entitlement.lookup_key}' already exists`);
-      role = await updateRole(role.id, {
+      role = await roleService.updateRole(role.id, {
         permissions: [`query:${queries}`, `image:${images}`]
       });
     }
@@ -171,7 +160,7 @@ async function createRcEntitlementRoles() {
   for (const role of existingRcRoles) {
     if (!entitlements.items.find((e) => e.lookup_key === role.name.split(':')[1])) {
       console.log(`Role '${role.name}' no longer exists, deleting`);
-      await deleteRole(role.id);
+      await roleService.deleteRole(role.id);
     }
   }
 }
@@ -186,13 +175,7 @@ export const handler: Handler = async () => {
 
     await Job.hnswIndexJob.run({
       payload: {
-        dbOptions: {
-          readOnlyUrl: databaseConfig.readOnlyUrl,
-          readWriteUrl: databaseConfig.readWriteUrl
-        },
         vectorDbOptions: {
-          readOnlyUrl: vectorDBConfig.readUrl,
-          readWriteUrl: vectorDBConfig.writeUrl,
           recreateIndexes: false
         }
       }

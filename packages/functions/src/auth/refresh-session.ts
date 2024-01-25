@@ -1,12 +1,12 @@
-import { OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
+import { OkResponse, UnauthorizedResponse } from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
 import { Session } from 'sst/node/auth';
+import { sessionService } from '../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   console.debug('Received session refresh event: ', event);
 
-  const { isValid, sessionToken, userWithRoles } = await validApiHandlerSession();
+  const { isValid, sessionToken, userWithRoles } = await sessionService.validApiHandlerSession();
 
   if (!isValid) {
     console.debug('Invalid session token: ', sessionToken);

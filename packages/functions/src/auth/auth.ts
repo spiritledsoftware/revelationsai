@@ -1,19 +1,13 @@
-import { config as emailConfig, emailTransport } from '@core/configs/email';
-import { config as websiteConfig } from '@core/configs/website';
-import type { User } from '@core/model/user';
+import { config as emailConfig, emailTransport } from '@revelationsai/core/configs/email';
+import { config as stripeConfig } from '@revelationsai/core/configs/stripe';
+import { config as websiteConfig } from '@revelationsai/core/configs/website';
+import type { User } from '@revelationsai/core/model/user';
 import {
   BadRequestResponse,
   InternalServerErrorResponse,
   OkResponse,
   RedirectResponse
-} from '@lib/api-responses';
-import { addRoleToUser, doesUserHaveRole } from '@services/role';
-import { createUser, getUserByEmail, updateUser } from '@services/user';
-import {
-  createUserPassword,
-  getUserPasswordByUserId,
-  updateUserPassword
-} from '@services/user/password';
+} from '@revelationsai/server/lib/api-responses';
 import argon from 'argon2';
 import { randomBytes } from 'crypto';
 import fs from 'fs';
@@ -23,7 +17,7 @@ import path from 'path';
 import pug from 'pug';
 import { AuthHandler, GoogleAdapter, Session } from 'sst/node/auth';
 import Stripe from 'stripe';
-import { config as stripeConfig } from '../configs/stripe';
+import { roleService, userPasswordService, userService } from '../lib/services';
 import { AppleAdapter } from './providers/apple';
 import { CredentialsAdapter } from './providers/credentials';
 
@@ -89,9 +83,9 @@ const AppleClientSecret = () => {
 const appleClientSecret = AppleClientSecret();
 
 const checkForUserOrCreateFromTokenSet = async (tokenSet: TokenSet) => {
-  let user = await getUserByEmail(tokenSet.claims().email!);
+  let user = await userService.getUserByEmail(tokenSet.claims().email!);
   if (!user) {
-    user = await createUser({
+    user = await userService.createUser({
       email: tokenSet.claims().email!,
       name: tokenSet.claims().name!,
       image: tokenSet.claims().picture!,
@@ -99,7 +93,7 @@ const checkForUserOrCreateFromTokenSet = async (tokenSet: TokenSet) => {
     });
   } else {
     if (tokenSet.claims().name && user.name !== tokenSet.claims().name) {
-      user = await updateUser(user.id, {
+      user = await userService.updateUser(user.id, {
         name: tokenSet.claims().name!
       });
     }
@@ -108,15 +102,15 @@ const checkForUserOrCreateFromTokenSet = async (tokenSet: TokenSet) => {
       user.image !== tokenSet.claims().picture &&
       !user.hasCustomImage
     ) {
-      user = await updateUser(user.id, {
+      user = await userService.updateUser(user.id, {
         image: tokenSet.claims().picture!,
         hasCustomImage: false
       });
     }
   }
 
-  await doesUserHaveRole('user', user.id).then(async (hasRole) => {
-    if (!hasRole) await addRoleToUser('user', user!.id);
+  await roleService.doesUserHaveRole('user', user.id).then(async (hasRole) => {
+    if (!hasRole) await roleService.addRoleToUser('user', user!.id);
   });
 
   if (!user.stripeCustomerId) {
@@ -136,7 +130,7 @@ async function createStripeCustomer(user: User) {
     name: user.name || undefined
   });
 
-  user = await updateUser(user.id, {
+  user = await userService.updateUser(user.id, {
     stripeCustomerId: customer.id
   });
 
@@ -191,20 +185,20 @@ const createCredentialsAdapter = (
       });
     },
     onRegisterCallback: async (email, password) => {
-      let user: User | undefined = await getUserByEmail(email);
+      let user: User | undefined = await userService.getUserByEmail(email);
       if (!user) {
-        user = await createUser({
+        user = await userService.createUser({
           email: email
         });
 
         const salt = randomBytes(16).toString('hex');
-        await createUserPassword({
+        await userPasswordService.createUserPassword({
           userId: user.id,
           passwordHash: await argon.hash(`${password}${salt}`),
           salt: Buffer.from(salt, 'hex').toString('base64')
         });
 
-        await addRoleToUser('user', user.id);
+        await roleService.addRoleToUser('user', user.id);
         await createStripeCustomer(user);
       } else {
         return BadRequestResponse('A user already exists with this email');
@@ -212,12 +206,12 @@ const createCredentialsAdapter = (
       return SessionParameter(user, `${callbackUrlBase}/callback`);
     },
     onLogin: async (claims) => {
-      let user: User | undefined = await getUserByEmail(claims.email);
+      let user: User | undefined = await userService.getUserByEmail(claims.email);
       if (!user) {
         return InternalServerErrorResponse('User not found');
       }
 
-      const password = await getUserPasswordByUserId(user.id);
+      const password = await userPasswordService.getUserPasswordByUserId(user.id);
       if (!password) {
         return BadRequestResponse(
           'You may have signed up with a different provider. Try using facebook or google to login.'
@@ -233,8 +227,8 @@ const createCredentialsAdapter = (
         return BadRequestResponse('Incorrect password');
       }
 
-      await doesUserHaveRole('user', user.id).then(async (hasRole) => {
-        if (!hasRole) await addRoleToUser('user', user!.id);
+      await roleService.doesUserHaveRole('user', user.id).then(async (hasRole) => {
+        if (!hasRole) await roleService.addRoleToUser('user', user!.id);
       });
       if (!user.stripeCustomerId) {
         user = await createStripeCustomer(user);
@@ -269,12 +263,12 @@ const createCredentialsAdapter = (
       return RedirectResponse(`${callbackUrlBase}/forgot-password?token=${token}`);
     },
     onResetPassword: async (email, password) => {
-      const user = await getUserByEmail(email);
+      const user = await userService.getUserByEmail(email);
       if (!user) {
         return InternalServerErrorResponse('User not found');
       }
 
-      const userPassword = await getUserPasswordByUserId(user.id);
+      const userPassword = await userPasswordService.getUserPasswordByUserId(user.id);
       if (!userPassword) {
         return BadRequestResponse(
           'User does not have a password, you may have signed up with a different provider. Try using facebook or google to login.'
@@ -291,7 +285,7 @@ const createCredentialsAdapter = (
       }
 
       const salt = randomBytes(16).toString('hex');
-      await updateUserPassword(userPassword.id, {
+      await userPasswordService.updateUserPassword(userPassword.id, {
         passwordHash: await argon.hash(`${password}${salt}`),
         salt: Buffer.from(salt, 'hex').toString('base64')
       });

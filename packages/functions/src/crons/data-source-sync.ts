@@ -1,13 +1,13 @@
-import { dataSources } from '@core/schema';
-import { syncDataSource } from '@lib/util/data-source';
-import { getDataSources } from '@services/data-source';
+import { dataSources } from '@revelationsai/core/database/schema';
 import type { Handler } from 'aws-lambda';
 import { eq, not } from 'drizzle-orm';
+import { dataSourceService } from '../lib/services';
+import { syncDataSource } from '../lib/util/data-source';
 
 export const handler: Handler = async (event) => {
   console.log('Syncing data sources:', event);
 
-  const sources = await getDataSources({
+  const sources = await dataSourceService.getDataSources({
     where: not(eq(dataSources.syncSchedule, 'NEVER')),
     limit: Number.MAX_SAFE_INTEGER
   });

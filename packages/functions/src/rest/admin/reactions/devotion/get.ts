@@ -1,11 +1,13 @@
-import { buildOrderBy } from '@core/database/helpers';
-import type { DevotionReactionInfo } from '@core/model/devotion/reaction';
-import { devotionReactions } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { getDevotionReactionsWithInfo } from '@services/devotion/reaction';
-import { validApiHandlerSession } from '@services/session';
-import { isAdminSync } from '@services/user';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { devotionReactions } from '@revelationsai/core/database/schema';
+import type { DevotionReactionInfo } from '@revelationsai/core/model/devotion/reaction';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { devotionReactionService, sessionService, userService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -15,16 +17,16 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be signed in.');
     }
 
-    if (!isAdminSync(userWithRoles)) {
+    if (!userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse('You do not have permission to view these reactions.');
     }
 
-    const reactions = await getDevotionReactionsWithInfo({
+    const reactions = await devotionReactionService.getDevotionReactionsWithInfo({
       limit,
       offset: (page - 1) * limit,
       orderBy: buildOrderBy(devotionReactions, orderBy, order)

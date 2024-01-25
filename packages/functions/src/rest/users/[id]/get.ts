@@ -2,14 +2,14 @@ import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   OkResponse
-} from '@lib/api-responses';
-import { getUser } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { userService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
   try {
-    const user = await getUser(id);
+    const user = await userService.getUser(id);
     if (!user) {
       return ObjectNotFoundResponse(id);
     }

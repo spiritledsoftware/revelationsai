@@ -1,13 +1,13 @@
-import { indexOperations } from '@core/schema';
-import { getIndexOperations, updateIndexOperation } from '@services/data-source/index-op';
+import { indexOperations } from '@revelationsai/core/database/schema';
 import type { Handler } from 'aws-lambda';
 import { and, eq, lt } from 'drizzle-orm';
+import { indexOperationService } from '../lib/services';
 
 export const handler: Handler = async (event) => {
   console.log('Cleaning up old index ops:', event);
 
   // Get all index ops that are running and older than 1 day
-  const indexOps = await getIndexOperations({
+  const indexOps = await indexOperationService.getIndexOperations({
     where: and(
       eq(indexOperations.status, 'RUNNING'),
       lt(
@@ -21,7 +21,7 @@ export const handler: Handler = async (event) => {
   // Set them to failed
   await Promise.all(
     indexOps.map(async (indexOp) => {
-      await updateIndexOperation(indexOp.id, {
+      await indexOperationService.updateIndexOperation(indexOp.id, {
         status: 'FAILED',
         errorMessages: [...(indexOp?.errorMessages ?? []), 'Index operation timed out']
       });

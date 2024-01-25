@@ -3,33 +3,27 @@ import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import {
-  deleteDataSource,
-  deleteDataSourceRelatedDocuments,
-  getDataSource
-} from '@services/data-source';
-import { validApiHandlerSession } from '@services/session';
-import { isAdminSync } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { dataSourceService, sessionService, userService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !userWithRoles.id || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userWithRoles.id || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 
-    const dataSource = await getDataSource(id);
+    const dataSource = await dataSourceService.getDataSource(id);
     if (!dataSource) {
       return ObjectNotFoundResponse(id);
     }
 
     await Promise.all([
-      deleteDataSource(dataSource!.id),
-      deleteDataSourceRelatedDocuments(dataSource!.id)
+      dataSourceService.deleteDataSource(dataSource!.id),
+      dataSourceService.deleteDataSourceRelatedDocuments(dataSource!.id)
     ]);
 
     return DeletedResponse();

@@ -1,7 +1,7 @@
-import type { UserInfo } from '@core/model/user';
-import { OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
+import type { UserInfo } from '@revelationsai/core/model/user';
+import { OkResponse, UnauthorizedResponse } from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService } from '../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   console.debug('Received session validation event: ', event);
@@ -14,7 +14,7 @@ export const handler = ApiHandler(async (event) => {
     sessionToken,
     maxGeneratedImages,
     remainingGeneratedImages
-  } = await validApiHandlerSession();
+  } = await sessionService.validApiHandlerSession();
 
   if (!isValid) {
     console.debug('Invalid session token: ', sessionToken);

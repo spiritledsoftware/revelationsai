@@ -1,15 +1,15 @@
-import { getTodaysDateString } from '@lib/util/date';
-import { generateDiveDeeperQueries } from '@lib/util/devotion';
-import { getDevotionByCreatedDate, updateDevotion } from '@services/devotion';
+import { getTodaysDateString } from '@revelationsai/core/util/date';
 import type { Handler } from 'aws-lambda';
 import firebase from 'firebase-admin';
 import path from 'path';
+import { devotionService } from '../lib/services';
+import { generateDiveDeeperQueries } from '../lib/util/devotion';
 
 export const handler: Handler = async (event) => {
   console.log(event);
 
   const dateString = getTodaysDateString();
-  let devotion = await getDevotionByCreatedDate(dateString);
+  let devotion = await devotionService.getDevotionByCreatedDate(dateString);
 
   if (!devotion) {
     throw new Error('No devotion found');
@@ -18,7 +18,7 @@ export const handler: Handler = async (event) => {
   let queries = devotion.diveDeeperQueries;
   if (!queries || queries.length === 0) {
     queries = await generateDiveDeeperQueries(devotion, 1);
-    devotion = await updateDevotion(devotion.id, {
+    devotion = await devotionService.updateDevotion(devotion.id, {
       diveDeeperQueries: queries
     });
   }

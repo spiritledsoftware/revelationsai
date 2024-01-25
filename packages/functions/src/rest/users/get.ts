@@ -1,8 +1,8 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { users as usersTable } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse } from '@lib/api-responses';
-import { getUsers } from '@services/user';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { users as usersTable } from '@revelationsai/core/database/schema';
+import { InternalServerErrorResponse, OkResponse } from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { userService } from '../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -12,7 +12,7 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const users = await getUsers({
+    const users = await userService.getUsers({
       limit,
       offset: (page - 1) * limit,
       orderBy: buildOrderBy(usersTable, orderBy, order)

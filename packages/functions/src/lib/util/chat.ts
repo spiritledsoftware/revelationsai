@@ -1,10 +1,10 @@
-import type { Chat } from '@core/model/chat';
 import { StringOutputParser } from '@langchain/core/output_parsers';
-import { updateChat } from '@services/chat';
-import { CHAT_RENAME_CHAIN_PROMPT_TEMPLATE } from '@services/chat/prompts';
-import { getLargeContextModel } from '@services/llm';
+import type { Chat } from '@revelationsai/core/model/chat';
 import type { Message } from 'ai';
 import { PromptTemplate } from 'langchain/prompts';
+import { CHAT_RENAME_CHAIN_PROMPT_TEMPLATE } from '../chat/prompts';
+import { getLargeContextModel } from '../llm';
+import { chatService } from '../services';
 
 export async function aiRenameChat(chat: Chat, history: Message[]) {
   if (chat.customName) {
@@ -34,7 +34,7 @@ export async function aiRenameChat(chat: Chat, history: Message[]) {
     })
     .then((result) => result.trim());
 
-  return await updateChat(chat.id, {
+  return await chatService.updateChat(chat.id, {
     name: result,
     customName: false
   });

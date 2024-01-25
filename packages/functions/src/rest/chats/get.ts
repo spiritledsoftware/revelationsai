@@ -1,10 +1,13 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { chats as chatsTable } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { getChats } from '@services/chat/chat';
-import { validApiHandlerSession } from '@services/session';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { chats as chatsTable } from '@revelationsai/core/database/schema';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import { chatService, sessionService } from '../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -14,12 +17,12 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You are not logged in.');
     }
 
-    const chats = await getChats({
+    const chats = await chatService.getChats({
       where: eq(chatsTable.userId, userWithRoles.id),
       orderBy: buildOrderBy(chatsTable, orderBy, order),
       offset: (page - 1) * limit,

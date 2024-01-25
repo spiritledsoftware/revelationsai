@@ -1,6 +1,6 @@
 <script lang="ts">
 	import PricingCard from '$lib/components/PricingCard.svelte';
-	import { hasPlus, isAdmin } from '$lib/services/user';
+	import { hasPlus, isAdmin } from '@revelationsai/client/lib/user';
 	import type { PageData } from './$types';
 
 	export let data: PageData;

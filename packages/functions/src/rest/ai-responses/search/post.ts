@@ -1,10 +1,13 @@
-import { buildOrderBy, buildQuery } from '@core/database/helpers';
-import { aiResponses } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { getAiResponses } from '@services/ai-response/ai-response';
-import { validApiHandlerSession } from '@services/session';
+import { buildOrderBy, buildQuery } from '@revelationsai/core/database/helpers';
+import { aiResponses } from '@revelationsai/core/database/schema';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { and, eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import { aiResponseService, sessionService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -24,12 +27,12 @@ export const handler = ApiHandler(async (event) => {
   });
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be logged in');
     }
 
-    const responses = await getAiResponses({
+    const responses = await aiResponseService.getAiResponses({
       where: and(
         buildQuery(aiResponses, query),
         eq(aiResponses.userId, userWithRoles.id),

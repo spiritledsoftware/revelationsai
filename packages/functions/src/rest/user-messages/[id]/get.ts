@@ -3,22 +3,20 @@ import {
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
-import { isObjectOwner } from '@services/user';
-import { getUserMessage } from '@services/user/message';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { userMessageService, sessionService, userService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
   try {
-    const userMessage = await getUserMessage(id);
+    const userMessage = await userMessageService.getUserMessage(id);
     if (!userMessage) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isObjectOwner(userMessage, userWithRoles.id)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isObjectOwner(userMessage, userWithRoles.id)) {
       return UnauthorizedResponse('You are not authorized to view this message');
     }
 

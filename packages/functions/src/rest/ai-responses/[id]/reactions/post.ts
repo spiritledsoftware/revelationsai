@@ -1,4 +1,4 @@
-import { aiResponseReactions } from '@core/schema';
+import { aiResponseReactions } from '@revelationsai/core/database/schema';
 import {
   BadRequestResponse,
   CreatedResponse,
@@ -6,17 +6,15 @@ import {
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { getAiResponse } from '@services/ai-response';
-import {
-  createAiResponseReaction,
-  getAiResponseReactions,
-  updateAiResponseReaction
-} from '@services/ai-response/reaction';
-import { validApiHandlerSession } from '@services/session';
-import { isObjectOwner } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { and, eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import {
+  aiResponseReactionService,
+  aiResponseService,
+  sessionService,
+  userService
+} from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
@@ -36,22 +34,22 @@ export const handler = ApiHandler(async (event) => {
   }
 
   try {
-    const aiResponse = await getAiResponse(id);
+    const aiResponse = await aiResponseService.getAiResponse(id);
     if (!aiResponse) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be signed in.');
     }
 
-    if (!isObjectOwner(aiResponse, userWithRoles.id)) {
+    if (!userService.isObjectOwner(aiResponse, userWithRoles.id)) {
       return UnauthorizedResponse('You do not have permission to react to this AI response.');
     }
 
     let aiResponseReaction = (
-      await getAiResponseReactions({
+      await aiResponseReactionService.getAiResponseReactions({
         where: and(
           eq(aiResponseReactions.aiResponseId, aiResponse.id),
           eq(aiResponseReactions.userId, userWithRoles.id)
@@ -65,15 +63,18 @@ export const handler = ApiHandler(async (event) => {
         return BadRequestResponse('You have already reacted with this reaction.');
       } else {
         aiResponseReaction.reaction = reaction;
-        aiResponseReaction = await updateAiResponseReaction(aiResponseReaction.id, {
-          reaction,
-          comment
-        });
+        aiResponseReaction = await aiResponseReactionService.updateAiResponseReaction(
+          aiResponseReaction.id,
+          {
+            reaction,
+            comment
+          }
+        );
         return OkResponse(aiResponseReaction);
       }
     }
 
-    aiResponseReaction = await createAiResponseReaction({
+    aiResponseReaction = await aiResponseReactionService.createAiResponseReaction({
       aiResponseId: aiResponse.id,
       userId: userWithRoles.id,
       reaction,

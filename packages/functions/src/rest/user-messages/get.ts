@@ -1,10 +1,13 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { userMessages } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
-import { getUserMessages } from '@services/user/message';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { userMessages } from '@revelationsai/core/database/schema';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { eq } from 'drizzle-orm';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService, userMessageService } from '../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -14,12 +17,12 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be logged in.');
     }
 
-    const messages = await getUserMessages({
+    const messages = await userMessageService.getUserMessages({
       where: eq(userMessages.userId, userWithRoles.id),
       limit,
       offset: (page - 1) * limit,

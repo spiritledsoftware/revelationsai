@@ -1,11 +1,13 @@
-import { buildOrderBy } from '@core/database/helpers';
-import type { AiResponseReactionInfo } from '@core/model/ai-response/reaction';
-import { aiResponseReactions } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { getAiResponseReactionsWithInfo } from '@services/ai-response/reaction';
-import { validApiHandlerSession } from '@services/session';
-import { isAdminSync } from '@services/user';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { aiResponseReactions } from '@revelationsai/core/database/schema';
+import type { AiResponseReactionInfo } from '@revelationsai/core/model/ai-response/reaction';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { aiResponseReactionService, sessionService, userService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -15,16 +17,16 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse('You must be signed in.');
     }
 
-    if (!isAdminSync(userWithRoles)) {
+    if (!userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse('You do not have permission to view these reactions.');
     }
 
-    const reactions = await getAiResponseReactionsWithInfo({
+    const reactions = await aiResponseReactionService.getAiResponseReactionsWithInfo({
       limit,
       offset: (page - 1) * limit,
       orderBy: buildOrderBy(aiResponseReactions, orderBy, order)

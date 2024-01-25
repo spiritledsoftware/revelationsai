@@ -1,16 +1,16 @@
-import { toTitleCase } from '@core/util/string';
-import { getTodaysDateString } from '@lib/util/date';
-import { generateDevotion } from '@lib/util/devotion';
-import { getDevotionByCreatedDate } from '@services/devotion';
+import { getTodaysDateString } from '@revelationsai/core/util/date';
+import { toTitleCase } from '@revelationsai/core/util/string';
 import type { Handler } from 'aws-lambda';
 import firebase from 'firebase-admin';
 import path from 'path';
+import { devotionService } from '../lib/services';
+import { generateDevotion } from '../lib/util/devotion';
 
 export const handler: Handler = async (event) => {
   console.log(event);
 
   const dateString = getTodaysDateString();
-  let devo = await getDevotionByCreatedDate(dateString);
+  let devo = await devotionService.getDevotionByCreatedDate(dateString);
 
   if (!devo) {
     devo = await generateDevotion();

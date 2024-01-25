@@ -4,11 +4,10 @@ import {
   InternalServerErrorResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { indexWebPage } from '@services/scraper/webpage';
-import { validApiHandlerSession } from '@services/session';
-import { isAdmin } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { indexWebPage } from '../../lib/scraper/webpage';
+import { sessionService, userService } from '../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const { dataSourceId, name, url, metadata = '{}' } = JSON.parse(event.body || '{}');
@@ -17,12 +16,12 @@ export const handler = ApiHandler(async (event) => {
   }
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse();
     }
 
-    if (!(await isAdmin(userWithRoles.id))) {
+    if (!userService.isAdminSync(userWithRoles)) {
       return ForbiddenResponse();
     }
 

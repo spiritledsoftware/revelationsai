@@ -1,23 +1,25 @@
+import { verifyPassword } from '@revelationsai/core/util/password';
 import {
   BadRequestResponse,
   InternalServerErrorResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { verifyPassword } from '@lib/util/password';
-import { addRoleToUser } from '@services/role';
-import { validApiHandlerSession } from '@services/session';
-import { createUser, isAdminSync } from '@services/user';
-import { createUserPassword } from '@services/user/password';
+} from '@revelationsai/server/lib/api-responses';
 import { hash } from 'argon2';
 import { randomBytes } from 'crypto';
 import { ApiHandler } from 'sst/node/api';
+import {
+  roleService,
+  sessionService,
+  userPasswordService,
+  userService
+} from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const { password, ...data } = JSON.parse(event.body ?? '{}');
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 
@@ -29,12 +31,12 @@ export const handler = ApiHandler(async (event) => {
       }
     }
 
-    const user = await createUser(data);
-    await addRoleToUser('user', user.id);
+    const user = await userService.createUser(data);
+    await roleService.addRoleToUser('user', user.id);
 
     if (password) {
       const salt = randomBytes(16).toString('hex');
-      await createUserPassword({
+      await userPasswordService.createUserPassword({
         userId: user.id,
         passwordHash: await hash(`${password}${salt}`),
         salt: Buffer.from(salt, 'hex').toString('base64')

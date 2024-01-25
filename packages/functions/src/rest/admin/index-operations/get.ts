@@ -1,10 +1,12 @@
-import { buildOrderBy } from '@core/database/helpers';
-import { indexOperations } from '@core/schema';
-import { InternalServerErrorResponse, OkResponse, UnauthorizedResponse } from '@lib/api-responses';
-import { getIndexOperations } from '@services/data-source/index-op';
-import { validApiHandlerSession } from '@services/session';
-import { isAdminSync } from '@services/user';
+import { buildOrderBy } from '@revelationsai/core/database/helpers';
+import { indexOperations } from '@revelationsai/core/database/schema';
+import {
+  InternalServerErrorResponse,
+  OkResponse,
+  UnauthorizedResponse
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { indexOperationService, sessionService, userService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const searchParams = event.queryStringParameters ?? {};
@@ -14,12 +16,12 @@ export const handler = ApiHandler(async (event) => {
   const order = searchParams.order ?? 'desc';
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 
-    const indexOps = await getIndexOperations({
+    const indexOps = await indexOperationService.getIndexOperations({
       offset: (page - 1) * limit,
       limit,
       orderBy: buildOrderBy(indexOperations, orderBy, order)

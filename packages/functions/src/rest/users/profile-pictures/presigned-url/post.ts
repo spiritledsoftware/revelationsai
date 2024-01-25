@@ -1,14 +1,14 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import s3Config from '@core/configs/s3';
+import s3Config from '@revelationsai/core/configs/s3';
 import {
   BadRequestResponse,
   InternalServerErrorResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService } from '../../../../lib/services';
 
 const s3Client = new S3Client({});
 
@@ -21,7 +21,7 @@ export const handler = ApiHandler(async (event) => {
   }
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
     if (!isValid) {
       return UnauthorizedResponse();
     }

@@ -1,26 +1,25 @@
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import axios from '@core/configs/axios';
-import replicateConfig from '@core/configs/replicate';
-import type { Devotion } from '@core/model/devotion';
-import { devotionsToSourceDocuments } from '@core/schema';
-import { db } from '@lib/database/database';
-import { createDevotion, updateDevotion } from '@services/devotion';
-import { createDevotionImage } from '@services/devotion/image';
-import {
-  getBibleReadingChain,
-  getDevotionGeneratorChain,
-  getImageCaptionChain,
-  getImagePromptChain
-} from '@services/devotion/langchain';
-import { DEVO_DIVE_DEEPER_QUERY_GENERATOR_PROMPT_TEMPLATE } from '@services/devotion/prompts';
-import { getLargeContextModel } from '@services/llm';
-import { OUTPUT_FIXER_PROMPT_TEMPLATE } from '@services/llm/prompts';
+import axios from '@revelationsai/core/configs/axios';
+import replicateConfig from '@revelationsai/core/configs/replicate';
+import { devotionsToSourceDocuments } from '@revelationsai/core/database/schema';
+import type { Devotion } from '@revelationsai/core/model/devotion';
 import { JsonMarkdownStructuredOutputParser, OutputFixingParser } from 'langchain/output_parsers';
 import { PromptTemplate } from 'langchain/prompts';
 import Replicate from 'replicate';
 import { Bucket } from 'sst/node/bucket';
 import { z } from 'zod';
+import db from '../database';
+import {
+  getBibleReadingChain,
+  getDevotionGeneratorChain,
+  getImageCaptionChain,
+  getImagePromptChain
+} from '../devotion/langchain';
+import { DEVO_DIVE_DEEPER_QUERY_GENERATOR_PROMPT_TEMPLATE } from '../devotion/prompts';
+import { getLargeContextModel } from '../llm';
+import { OUTPUT_FIXER_PROMPT_TEMPLATE } from '../llm/prompts';
+import { devotionImageService, devotionService } from '../services';
 
 // 31 topics, one for each day of the month
 const devotionTopics = [
@@ -65,7 +64,8 @@ function getTopic() {
 export async function getBibleReading() {
   const topic = getTopic();
   console.log(`Devotion topic: ${topic}`);
-  const chain = await getBibleReadingChain(topic);
+  const previousDevotions = await devotionService.getDevotions({ limit: 10 });
+  const chain = await getBibleReadingChain(topic, previousDevotions);
   const result = await chain.invoke({
     topic
   });
@@ -162,7 +162,7 @@ export async function generateDevotionImages(devo: Devotion) {
       }
 
       const imageUrl = s3Url.split('?')[0];
-      await createDevotionImage({
+      await devotionImageService.createDevotionImage({
         devotionId: devo.id,
         url: imageUrl,
         caption: imageCaption,
@@ -190,7 +190,7 @@ export async function generateDevotion(topic?: string, bibleReading?: string) {
       bibleReading
     });
 
-    devo = await createDevotion({
+    devo = await devotionService.createDevotion({
       topic,
       bibleReading,
       summary: result.summary,
@@ -212,13 +212,13 @@ export async function generateDevotion(topic?: string, bibleReading?: string) {
     await generateDevotionImages(devo);
 
     const diveDeeperQueries = await generateDiveDeeperQueries(devo);
-    devo = await updateDevotion(devo.id, {
+    devo = await devotionService.updateDevotion(devo.id, {
       diveDeeperQueries
     });
   } catch (e) {
     console.error(e);
     if (devo) {
-      devo = await updateDevotion(devo.id, { failed: true });
+      devo = await devotionService.updateDevotion(devo.id, { failed: true });
     }
   }
 

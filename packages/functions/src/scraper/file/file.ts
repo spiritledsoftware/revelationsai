@@ -1,12 +1,9 @@
 import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import unstructuredConfig from '@core/configs/unstructured';
-import vectorDBConfig from '@core/configs/vector-db';
-import type { IndexOperation } from '@core/model/data-source/index-op';
-import { indexOperations } from '@core/schema';
-import type { Metadata } from '@core/types/metadata';
-import { getDataSourceOrThrow, updateDataSource } from '@services/data-source';
-import { createIndexOperation, updateIndexOperation } from '@services/data-source/index-op';
-import { getDocumentVectorStore } from '@services/vector-db';
+import unstructuredConfig from '@revelationsai/core/configs/unstructured';
+import vectorDBConfig from '@revelationsai/core/configs/vector-db';
+import { indexOperations } from '@revelationsai/core/database/schema';
+import type { IndexOperation } from '@revelationsai/core/model/data-source/index-op';
+import type { Metadata } from '@revelationsai/core/types/metadata';
 import type { S3Handler } from 'aws-lambda';
 import { sql } from 'drizzle-orm';
 import { mkdtempSync, writeFileSync } from 'fs';
@@ -19,6 +16,11 @@ import { UnstructuredLoader } from 'langchain/document_loaders/fs/unstructured';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import {
+  dataSourceService,
+  indexOperationService,
+  vectorDatabaseService
+} from '../../lib/services';
 
 const s3Client = new S3Client({});
 
@@ -101,12 +103,12 @@ export const handler: S3Handler = async (event) => {
     }
 
     let [indexOp, dataSource] = await Promise.all([
-      createIndexOperation({
+      indexOperationService.createIndexOperation({
         status: 'RUNNING',
         metadata: indexOpMetadata,
         dataSourceId
       }),
-      getDataSourceOrThrow(dataSourceId)
+      dataSourceService.getDataSourceOrThrow(dataSourceId)
     ]);
 
     console.log('Starting load documents');
@@ -138,13 +140,13 @@ export const handler: S3Handler = async (event) => {
       return doc;
     });
     console.log('Adding documents to vector store');
-    const vectorStore = await getDocumentVectorStore({ write: true });
+    const vectorStore = await vectorDatabaseService.getDocumentVectorStore({ write: true });
     await vectorStore.addDocuments(docs);
     [indexOp, dataSource] = await Promise.all([
-      updateIndexOperation(indexOp!.id, {
+      indexOperationService.updateIndexOperation(indexOp!.id, {
         status: 'SUCCEEDED'
       }),
-      updateDataSource(dataSourceId, {
+      dataSourceService.updateDataSource(dataSourceId, {
         numberOfDocuments: docs.length
       })
     ]);
@@ -152,7 +154,7 @@ export const handler: S3Handler = async (event) => {
   } catch (error) {
     console.error('Error indexing file:', error);
     if (indexOp) {
-      indexOp = await updateIndexOperation(indexOp.id, {
+      indexOp = await indexOperationService.updateIndexOperation(indexOp.id, {
         status: 'FAILED',
         errorMessages: sql`${indexOperations.errorMessages} || jsonb_build_array('${sql.raw(
           error instanceof Error

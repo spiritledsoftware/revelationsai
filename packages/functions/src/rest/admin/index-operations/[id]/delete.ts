@@ -3,27 +3,25 @@ import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { deleteIndexOperation, getIndexOperation } from '@services/data-source/index-op';
-import { validApiHandlerSession } from '@services/session';
-import { isAdminSync } from '@services/user';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { indexOperationService, sessionService, userService } from '../../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isAdminSync(userWithRoles)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isAdminSync(userWithRoles)) {
       return UnauthorizedResponse();
     }
 
-    const indexOp = await getIndexOperation(id);
+    const indexOp = await indexOperationService.getIndexOperation(id);
     if (!indexOp) {
       return ObjectNotFoundResponse(id);
     }
 
-    await deleteIndexOperation(indexOp!.id);
+    await indexOperationService.deleteIndexOperation(indexOp!.id);
 
     return DeletedResponse();
   } catch (error) {

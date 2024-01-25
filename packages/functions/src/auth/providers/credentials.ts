@@ -1,6 +1,5 @@
-import { BadRequestResponse } from '@lib/api-responses';
-import { verifyPassword } from '@lib/util/password';
-import { getUserByEmail } from '@services/user';
+import { verifyPassword } from '@revelationsai/core/util/password';
+import { BadRequestResponse } from '@revelationsai/server/lib/api-responses';
 import type {
   APIGatewayProxyEventQueryStringParameters,
   APIGatewayProxyStructuredResultV2
@@ -9,6 +8,7 @@ import { createSigner, createVerifier } from 'fast-jwt';
 import { useBody, useDomainName, usePath, useQueryParams } from 'sst/node/api';
 import { createAdapter, getPrivateKey, getPublicKey } from 'sst/node/auth';
 import isEmail from 'validator/lib/isEmail';
+import { userService } from '../../lib/services';
 
 interface EmailPasswordConfig {
   onRegister: (
@@ -54,7 +54,7 @@ export const CredentialsAdapter = createAdapter((config: EmailPasswordConfig) =>
         if (!claims.email) {
           return BadRequestResponse('Email is required');
         }
-        const user = await getUserByEmail(claims.email);
+        const user = await userService.getUserByEmail(claims.email);
         if (user) {
           return BadRequestResponse('A user already exists with this email');
         }
@@ -131,7 +131,7 @@ export const CredentialsAdapter = createAdapter((config: EmailPasswordConfig) =>
         if (!email) {
           return BadRequestResponse('Email is required');
         }
-        const user = await getUserByEmail(email);
+        const user = await userService.getUserByEmail(email);
         if (!user) {
           return BadRequestResponse('User not found');
         }

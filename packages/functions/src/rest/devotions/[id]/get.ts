@@ -2,15 +2,15 @@ import {
   InternalServerErrorResponse,
   ObjectNotFoundResponse,
   OkResponse
-} from '@lib/api-responses';
-import { getDevotion } from '@services/devotion';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { devotionService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
 
   try {
-    const devo = await getDevotion(id);
+    const devo = await devotionService.getDevotion(id);
     if (!devo) {
       return ObjectNotFoundResponse(id);
     }

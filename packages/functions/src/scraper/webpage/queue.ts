@@ -1,10 +1,9 @@
-import type { IndexOperation } from '@core/model/data-source/index-op';
-import { indexOperations } from '@core/schema';
-import { getDataSourceOrThrow } from '@services/data-source';
-import { getIndexOperationOrThrow, updateIndexOperation } from '@services/data-source/index-op';
+import { indexOperations } from '@revelationsai/core/database/schema';
+import type { IndexOperation } from '@revelationsai/core/model/data-source/index-op';
 import type { SQSHandler } from 'aws-lambda';
 import { sql } from 'drizzle-orm';
-import { generatePageContentEmbeddings } from '../../services/scraper/webpage';
+import { generatePageContentEmbeddings } from '../../lib/scraper/webpage';
+import { dataSourceService, indexOperationService } from '../../lib/services';
 
 export const consumer: SQSHandler = async (event) => {
   console.log('Received event: ', JSON.stringify(event));
@@ -23,8 +22,8 @@ export const consumer: SQSHandler = async (event) => {
       throw new Error('Missing index op id');
     }
 
-    indexOp = await getIndexOperationOrThrow(indexOpId);
-    const dataSource = await getDataSourceOrThrow(indexOp.dataSourceId);
+    indexOp = await indexOperationService.getIndexOperationOrThrow(indexOpId);
+    const dataSource = await dataSourceService.getDataSourceOrThrow(indexOp.dataSourceId);
 
     await generatePageContentEmbeddings(
       name,
@@ -34,7 +33,7 @@ export const consumer: SQSHandler = async (event) => {
     );
 
     console.log(`Successfully indexed url '${url}'. Updating index op.`);
-    indexOp = await updateIndexOperation(indexOp.id, {
+    indexOp = await indexOperationService.updateIndexOperation(indexOp.id, {
       // Remove the url from the failedUrls array if it exists
       // Add the url to the succeededUrls array
       metadata: sql`jsonb_set(
@@ -59,7 +58,7 @@ export const consumer: SQSHandler = async (event) => {
   } catch (err) {
     console.error(`Error indexing url '${url}':`, err);
     if (indexOp) {
-      indexOp = await updateIndexOperation(indexOp.id, {
+      indexOp = await indexOperationService.updateIndexOperation(indexOp.id, {
         metadata: sql`jsonb_set(${indexOperations.metadata}, 
           '{failedUrls}',
           COALESCE(
@@ -81,7 +80,7 @@ export const consumer: SQSHandler = async (event) => {
 const checkIfIndexOpIsCompletedAndUpdate = async (indexOp: IndexOperation) => {
   try {
     console.log(`Checking if index op is completed: ${indexOp.id}`);
-    return await updateIndexOperation(indexOp.id, {
+    return await indexOperationService.updateIndexOperation(indexOp.id, {
       status: sql`CASE
         WHEN COALESCE(${indexOperations.metadata}->>'totalUrls', '0')::int <=
           (

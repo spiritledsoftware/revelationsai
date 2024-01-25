@@ -3,28 +3,26 @@ import {
   ObjectNotFoundResponse,
   OkResponse,
   UnauthorizedResponse
-} from '@lib/api-responses';
-import { validApiHandlerSession } from '@services/session';
-import { isObjectOwner } from '@services/user';
-import { getUserMessage, updateUserMessage } from '@services/user/message';
+} from '@revelationsai/server/lib/api-responses';
 import { ApiHandler } from 'sst/node/api';
+import { sessionService, userMessageService, userService } from '../../../lib/services';
 
 export const handler = ApiHandler(async (event) => {
   const id = event.pathParameters!.id!;
   const data = JSON.parse(event.body ?? '{}');
 
   try {
-    let userMessage = await getUserMessage(id);
+    let userMessage = await userMessageService.getUserMessage(id);
     if (!userMessage) {
       return ObjectNotFoundResponse(id);
     }
 
-    const { isValid, userWithRoles } = await validApiHandlerSession();
-    if (!isValid || !isObjectOwner(userMessage, userWithRoles.id)) {
+    const { isValid, userWithRoles } = await sessionService.validApiHandlerSession();
+    if (!isValid || !userService.isObjectOwner(userMessage, userWithRoles.id)) {
       return UnauthorizedResponse('You are not authorized to update this message');
     }
 
-    userMessage = await updateUserMessage(userMessage.id, data);
+    userMessage = await userMessageService.updateUserMessage(userMessage.id, data);
 
     return OkResponse(userMessage);
   } catch (error) {
