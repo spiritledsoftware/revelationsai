@@ -40,7 +40,8 @@ export function Constants({ stack, app }: StackContext) {
         external: ['argon2', '@sparticuz/chromium', 'web-streams-polyfill'],
         minify: stack.stage === 'prod',
         treeShaking: stack.stage === 'prod',
-        target: 'esnext'
+        target: 'esnext',
+        format: 'esm'
       }
     },
     architecture: 'arm_64',
