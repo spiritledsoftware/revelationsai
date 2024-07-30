@@ -8,20 +8,12 @@ export type ModelInfo = {
 };
 
 export const freeTierModels = {
-  'claude-3-haiku-20240307': {
-    name: 'Claude-3 Haiku',
-    description: 'A large language model trained by Anthropic',
-    contextSize: '100k',
-    provider: 'anthropic',
-    link: 'https://www.anthropic.com/news/claude-3-family',
-    tier: 'free'
-  } satisfies ModelInfo,
-  'gpt-3.5-turbo': {
-    name: 'GPT-3.5 Turbo',
+  'gpt-4o-mini': {
+    name: 'GPT-4o Mini',
     description: 'A large language model trained by OpenAI',
-    contextSize: '16k',
+    contextSize: '128k',
     provider: 'openai',
-    link: 'https://platform.openai.com/docs/models/gpt-3-5-turbo',
+    link: 'https://openai.com/index/gpt-4o-mini-advancing-cost-efficient-intelligence/',
     tier: 'free'
   } satisfies ModelInfo
 } as const;
@@ -29,20 +21,20 @@ export type FreeTierModelId = keyof typeof freeTierModels;
 export const freeTierModelIds = Object.keys(freeTierModels) as FreeTierModelId[];
 
 export const plusTierModels = {
-  'gpt-4-turbo-preview': {
-    name: 'GPT-4 Turbo',
+  'gpt-4o': {
+    name: 'GPT-4o',
     description: 'A large language model trained by OpenAI',
     contextSize: '128k',
     provider: 'openai',
-    link: 'https://openai.com/gpt-4',
+    link: 'https://openai.com/index/hello-gpt-4o/',
     tier: 'plus'
   } satisfies ModelInfo,
-  'claude-3-opus-20240229': {
-    name: 'Claude-3 Opus',
+  'claude-3-5-sonnet-20240620': {
+    name: 'Claude-3.5 Sonnet',
     description: 'A large language model trained by Anthropic',
     contextSize: '200k',
-    provider: 'bedrock',
-    link: 'https://www.anthropic.com/news/claude-3-family',
+    provider: 'anthropic',
+    link: 'https://www.anthropic.com/news/claude-3-5-sonnet',
     tier: 'plus'
   } satisfies ModelInfo
 } as const;
