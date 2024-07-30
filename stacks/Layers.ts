@@ -3,13 +3,13 @@ import type { StackContext } from 'sst/constructs';
 
 export function Layers({ stack, app }: StackContext) {
   const argonLayer = LayerVersion.fromLayerVersionAttributes(stack, 'Argon2Layer', {
-    layerVersionArn: `arn:aws:lambda:${stack.region}:008193302444:layer:argon2-arm64:4`,
+    layerVersionArn: `arn:aws:lambda:${stack.region}:008193302444:layer:argon2-arm64:16`,
     compatibleRuntimes: [Runtime.NODEJS_20_X, Runtime.NODEJS_18_X]
   });
 
   // See versions here: https://github.com/axiomhq/axiom-lambda-extension
   const axiomArm64Layer = LayerVersion.fromLayerVersionAttributes(stack, 'AxiomArm64Layer', {
-    layerVersionArn: `arn:aws:lambda:${stack.region}:694952825951:layer:axiom-extension-arm64:8`,
+    layerVersionArn: `arn:aws:lambda:${stack.region}:694952825951:layer:axiom-extension-arm64:11`,
     compatibleRuntimes: [Runtime.NODEJS_20_X, Runtime.NODEJS_18_X]
   });
 
@@ -22,12 +22,12 @@ export function Layers({ stack, app }: StackContext) {
   }
 
   const axiomX86Layer = LayerVersion.fromLayerVersionAttributes(stack, 'AxiomX86Layer', {
-    layerVersionArn: `arn:aws:lambda:${stack.region}:694952825951:layer:axiom-extension-x86_64:8`,
+    layerVersionArn: `arn:aws:lambda:${stack.region}:694952825951:layer:axiom-extension-x86_64:11`,
     compatibleRuntimes: [Runtime.NODEJS_20_X, Runtime.NODEJS_18_X]
   });
 
   const chromiumLayer = LayerVersion.fromLayerVersionAttributes(stack, 'ChromiumLayer', {
-    layerVersionArn: `arn:aws:lambda:${stack.region}:008193302444:layer:chromium:3`,
+    layerVersionArn: `arn:aws:lambda:${stack.region}:008193302444:layer:chromium:28`,
     compatibleRuntimes: [Runtime.NODEJS_18_X]
   });
 

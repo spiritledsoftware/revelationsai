@@ -3,7 +3,7 @@ import type { RAIConfig } from '../types/config';
 export default {
   llm: {
     chat: {
-      defaultModel: 'claude-3-haiku-20240307'
+      defaultModel: 'gpt-4o-mini'
     },
     embeddings: {
       model: 'cohere.embed-multilingual-v3',

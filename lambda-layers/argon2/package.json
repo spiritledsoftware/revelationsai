@@ -6,6 +6,6 @@
   "keywords": [],
   "author": "Ian Pascoe",
   "dependencies": {
-    "argon2": "^0.40.1"
+    "argon2": "^0.40.3"
   }
 }

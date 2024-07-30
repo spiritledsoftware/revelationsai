@@ -12,6 +12,7 @@
         "kind": "OBJECT",
         "name": "AiResponse",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "aiId",
@@ -277,6 +278,7 @@
         "kind": "OBJECT",
         "name": "AiResponseReaction",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "aiResponse",
@@ -426,6 +428,7 @@
         "kind": "ENUM",
         "name": "AiResponseReactionType",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -449,6 +452,7 @@
         "kind": "INTERFACE",
         "name": "BaseModel",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "createdAt",
@@ -574,6 +578,7 @@
         "kind": "SCALAR",
         "name": "Boolean",
         "description": "The `Boolean` scalar type represents `true` or `false`.",
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -584,6 +589,7 @@
         "kind": "ENUM",
         "name": "CacheControlScope",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -607,6 +613,7 @@
         "kind": "OBJECT",
         "name": "Chat",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "aiResponses",
@@ -951,6 +958,7 @@
         "kind": "OBJECT",
         "name": "ChatMessage",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "content",
@@ -1078,6 +1086,7 @@
         "kind": "ENUM",
         "name": "ChatMessageRole",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -1125,6 +1134,7 @@
         "kind": "INPUT_OBJECT",
         "name": "ColumnPlaceholder",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -1168,6 +1178,7 @@
         "kind": "INPUT_OBJECT",
         "name": "ColumnValue",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -1211,6 +1222,7 @@
         "kind": "INPUT_OBJECT",
         "name": "CreateAiResponseReactionInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -1278,6 +1290,7 @@
         "kind": "INPUT_OBJECT",
         "name": "CreateChatInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -1313,6 +1326,7 @@
         "kind": "INPUT_OBJECT",
         "name": "CreateDataSourceInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -1396,6 +1410,7 @@
         "kind": "INPUT_OBJECT",
         "name": "CreateDevotionReactionInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -1463,6 +1478,7 @@
         "kind": "INPUT_OBJECT",
         "name": "CreateRoleInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -1514,6 +1530,7 @@
         "kind": "INPUT_OBJECT",
         "name": "CreateUserInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -1577,6 +1594,7 @@
         "kind": "OBJECT",
         "name": "DataSource",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "createdAt",
@@ -1839,6 +1857,7 @@
         "kind": "ENUM",
         "name": "DataSourceType",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -1880,6 +1899,7 @@
         "kind": "SCALAR",
         "name": "Date",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -1890,6 +1910,7 @@
         "kind": "OBJECT",
         "name": "Devotion",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "bibleReading",
@@ -2204,6 +2225,7 @@
         "kind": "OBJECT",
         "name": "DevotionImage",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "caption",
@@ -2349,6 +2371,7 @@
         "kind": "OBJECT",
         "name": "DevotionReaction",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "comment",
@@ -2498,6 +2521,7 @@
         "kind": "OBJECT",
         "name": "DevotionReactionCount",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "count",
@@ -2541,6 +2565,7 @@
         "kind": "ENUM",
         "name": "DevotionReactionType",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -2564,6 +2589,7 @@
         "kind": "ENUM",
         "name": "DistanceMetric",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -2593,6 +2619,7 @@
         "kind": "INPUT_OBJECT",
         "name": "FilterInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -2764,6 +2791,7 @@
         "kind": "SCALAR",
         "name": "Float",
         "description": "The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).",
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -2774,6 +2802,7 @@
         "kind": "OBJECT",
         "name": "IndexOperation",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "createdAt",
@@ -2923,6 +2952,7 @@
         "kind": "ENUM",
         "name": "IndexOperationStatus",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -2958,6 +2988,7 @@
         "kind": "SCALAR",
         "name": "Int",
         "description": "The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.",
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -2968,6 +2999,7 @@
         "kind": "SCALAR",
         "name": "Metadata",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -2978,6 +3010,7 @@
         "kind": "OBJECT",
         "name": "Mutation",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "createAiResponseReaction",
@@ -3945,6 +3978,7 @@
         "kind": "OBJECT",
         "name": "Query",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "aiResponse",
@@ -5545,6 +5579,7 @@
         "kind": "OBJECT",
         "name": "Role",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "createdAt",
@@ -5727,6 +5762,7 @@
         "kind": "INPUT_OBJECT",
         "name": "SortInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -5770,6 +5806,7 @@
         "kind": "ENUM",
         "name": "SortOrder",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -5793,6 +5830,7 @@
         "kind": "OBJECT",
         "name": "SourceDocument",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "distance",
@@ -5892,6 +5930,7 @@
         "kind": "SCALAR",
         "name": "String",
         "description": "The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.",
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -5902,6 +5941,7 @@
         "kind": "ENUM",
         "name": "SyncSchedule",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -5937,6 +5977,7 @@
         "kind": "ENUM",
         "name": "Translation",
         "description": null,
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -5972,6 +6013,7 @@
         "kind": "INPUT_OBJECT",
         "name": "UpdateAiResponseReactionInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -6007,6 +6049,7 @@
         "kind": "INPUT_OBJECT",
         "name": "UpdateChatInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -6030,6 +6073,7 @@
         "kind": "INPUT_OBJECT",
         "name": "UpdateDataSourceInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -6101,6 +6145,7 @@
         "kind": "INPUT_OBJECT",
         "name": "UpdateDevotionImage",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -6124,6 +6169,7 @@
         "kind": "INPUT_OBJECT",
         "name": "UpdateDevotionInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -6215,6 +6261,7 @@
         "kind": "INPUT_OBJECT",
         "name": "UpdateDevotionReactionInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -6250,6 +6297,7 @@
         "kind": "INPUT_OBJECT",
         "name": "UpdateIndexOperationInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -6285,6 +6333,7 @@
         "kind": "INPUT_OBJECT",
         "name": "UpdateRoleInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -6328,6 +6377,7 @@
         "kind": "INPUT_OBJECT",
         "name": "UpdateUserInput",
         "description": null,
+        "isOneOf": false,
         "fields": null,
         "inputFields": [
           {
@@ -6387,6 +6437,7 @@
         "kind": "OBJECT",
         "name": "User",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "aiResponseReactions",
@@ -7092,6 +7143,7 @@
         "kind": "OBJECT",
         "name": "UserGeneratedImage",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "createdAt",
@@ -7297,6 +7349,7 @@
         "kind": "OBJECT",
         "name": "UserMessage",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "aiId",
@@ -7446,6 +7499,7 @@
         "kind": "OBJECT",
         "name": "UserPassword",
         "description": null,
+        "isOneOf": null,
         "fields": [
           {
             "name": "createdAt",
@@ -7571,6 +7625,7 @@
         "kind": "OBJECT",
         "name": "__Directive",
         "description": "A Directive provides a way to describe alternate runtime execution and type validation behavior in a GraphQL document.\n\nIn some cases, you need to provide options to alter GraphQL's execution behavior in ways field arguments will not suffice, such as conditionally including or skipping a field. Directives provide this by describing additional information to the executor.",
+        "isOneOf": null,
         "fields": [
           {
             "name": "name",
@@ -7687,6 +7742,7 @@
         "kind": "ENUM",
         "name": "__DirectiveLocation",
         "description": "A Directive can be adjacent to many parts of the GraphQL language, a __DirectiveLocation describes one such possible adjacencies.",
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -7812,6 +7868,7 @@
         "kind": "OBJECT",
         "name": "__EnumValue",
         "description": "One possible value for a given Enum. Enum values are unique values, not a placeholder for a string or numeric value. However an Enum value is returned in a JSON response as a string.",
+        "isOneOf": null,
         "fields": [
           {
             "name": "name",
@@ -7879,6 +7936,7 @@
         "kind": "OBJECT",
         "name": "__Field",
         "description": "Object and Interface types are described by a list of Fields, each of which has a name, potentially a list of arguments, and a return type.",
+        "isOneOf": null,
         "fields": [
           {
             "name": "name",
@@ -7999,6 +8057,7 @@
         "kind": "OBJECT",
         "name": "__InputValue",
         "description": "Arguments provided to Fields or Directives and the input fields of an InputObject are represented as Input Values which describe their type and optionally a default value.",
+        "isOneOf": null,
         "fields": [
           {
             "name": "name",
@@ -8094,6 +8153,7 @@
         "kind": "OBJECT",
         "name": "__Schema",
         "description": "A GraphQL Schema defines the capabilities of a GraphQL server. It exposes all available types and directives on the server, as well as the entry points for query, mutation, and subscription operations.",
+        "isOneOf": null,
         "fields": [
           {
             "name": "description",
@@ -8205,6 +8265,7 @@
         "kind": "OBJECT",
         "name": "__Type",
         "description": "The fundamental unit of any GraphQL Schema is the type. There are many kinds of types in GraphQL as represented by the `__TypeKind` enum.\n\nDepending on the kind of a type, certain fields describe information about that type. Scalar types provide no information beyond a name, description and optional `specifiedByURL`, while Enum types provide their values. Object and Interface types provide the fields they describe. Abstract types, Union and Interface, provide the Object types possible at runtime. List and NonNull types compose other types.",
+        "isOneOf": null,
         "fields": [
           {
             "name": "kind",
@@ -8408,6 +8469,18 @@
             },
             "isDeprecated": false,
             "deprecationReason": null
+          },
+          {
+            "name": "isOneOf",
+            "description": null,
+            "args": [],
+            "type": {
+              "kind": "SCALAR",
+              "name": "Boolean",
+              "ofType": null
+            },
+            "isDeprecated": false,
+            "deprecationReason": null
           }
         ],
         "inputFields": null,
@@ -8419,6 +8492,7 @@
         "kind": "ENUM",
         "name": "__TypeKind",
         "description": "An enum describing what kind of type a given `__Type` is.",
+        "isOneOf": null,
         "fields": null,
         "inputFields": null,
         "interfaces": null,
@@ -8577,6 +8651,15 @@
             "deprecationReason": null
           }
         ]
+      },
+      {
+        "name": "oneOf",
+        "description": "Indicates exactly one field must be supplied and this field must not be `null`.",
+        "isRepeatable": false,
+        "locations": [
+          "INPUT_OBJECT"
+        ],
+        "args": []
       },
       {
         "name": "skip",

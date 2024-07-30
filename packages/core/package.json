@@ -7,13 +7,13 @@
     "typecheck": "tsc -noEmit"
   },
   "devDependencies": {
-    "@types/node": "^20.12.4",
-    "sst": "2.41.4",
-    "vitest": "^1.4.0"
+    "@types/node": "^22.0.0",
+    "sst": "2.43.4",
+    "vitest": "^2.0.4"
   },
   "dependencies": {
-    "ai": "^3.0.19",
-    "axios": "^1.6.8",
-    "axios-retry": "^4.1.0"
+    "ai": "^3.2.39",
+    "axios": "^1.7.2",
+    "axios-retry": "^4.4.2"
   }
 }

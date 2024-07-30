@@ -4,14 +4,14 @@
   import { PUBLIC_CHAT_API_URL } from '$env/static/public';
   import Message from '$lib/components/chat/Message.svelte';
   import { session, user } from '$lib/stores/user';
+  import { useChat } from '@ai-sdk/svelte';
   import Icon from '@iconify/svelte';
   import { updateAiResponse } from '@revelationsai/client/services/ai-response';
   import { hasPlus, isAdmin } from '@revelationsai/client/services/user';
   import type { RAIChatMessage } from '@revelationsai/core/model/chat/message';
   import type { ModelInfo } from '@revelationsai/core/model/llm';
   import { useQueryClient } from '@tanstack/svelte-query';
-  import { nanoid, type Message as ChatMessage } from 'ai';
-  import { useChat } from 'ai/svelte';
+  import { generateId, type Message as ChatMessage } from 'ai';
   import { onMount } from 'svelte';
   import IntersectionObserver from 'svelte-intersection-observer';
   import TextAreaAutosize from './TextAreaAutosize.svelte';
@@ -22,7 +22,6 @@
 
   let chatId: string | undefined = undefined;
   let modelId: string | undefined = undefined;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let lastUserMessageId: string | undefined = undefined;
   let lastAiResponseId: string | undefined = undefined;
   let lastModelId: string | undefined = undefined;
@@ -156,7 +155,7 @@
     await goto($page.url.pathname, { replaceState: true, noScroll: true });
     append(
       {
-        id: nanoid(),
+        id: generateId(),
         content: query,
         role: 'user'
       },
@@ -263,7 +262,7 @@
                   on:click={async () => {
                     await append(
                       {
-                        id: nanoid(),
+                        id: generateId(),
                         content: query,
                         role: 'user'
                       },
